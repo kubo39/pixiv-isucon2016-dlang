@@ -1,0 +1,31 @@
+extends layout
+
+block body
+    div.isu-submit
+        form(method="POST", action="/", enctype="multipart/form-data")
+            div.isu-form
+                input(type="file", name="file", value="file")
+            div.isu-form
+                textarea(name="body")
+            div.form-submit
+                input(type="hidden", name="csrf_token", value="#\{ csrf_token \}")
+                input(type="submit", name="submit", value="submit")
+
+    div.isu-posts
+        - foreach (post; posts)
+            div.isu-post(id="pid_#\{ post.id \}", data-created-at="#\{  post.created_at \}")
+                div.isu-post-header
+                div.isu-post-image
+                    img.isu-image(src="#\{ post.image_url \}")
+                div.isu-post-text
+                    post.nl2br_body
+                div.isu-post-comment
+                    div.isu-post-comment-count
+                        comments:
+                        b post.comment_count
+                    div.isu-comment-form
+                        form(method="POST", action="/comment")
+                            input(type="text", name="comment")
+                            input(type="submit", name="submit", value="submit")
+
+    div.isu-post-more

@@ -1,0 +1,19 @@
+extends layout
+
+block body
+    div.header
+        h1 ログイン
+
+    div.submit
+        form(method="POST", action="/login")
+            div.form-account-name
+                span アカウント名
+                input(type="text", name="account_name")
+            div.form-password
+                span パスワード
+                input(type="password", name="password")
+            div.form-submit
+                input(type="submit", name="submit", value="submit")
+
+    div.isu-register
+        a(href="/register") ユーザ登録

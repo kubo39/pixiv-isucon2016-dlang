@@ -1,0 +1,16 @@
+doctype html
+
+html
+    head
+        title Iscogram
+
+    body
+        div.header
+            div.isu-title
+                h1 Iscogram
+            div.isu-header-menu
+                div ログイン
+                div 管理者用ページ
+                div
+                    a(href="/logout") ログアウト
+            block body

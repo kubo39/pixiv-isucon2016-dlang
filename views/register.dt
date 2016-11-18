@@ -1,0 +1,16 @@
+extends layout
+
+block body
+    div.header
+        h1 ユーザ登録
+
+    div.submit
+        form(method="POST", action="/register")
+            div.form-account-name
+                span アカウント名
+                input(type="text", name="account_name")
+            div.form-password
+                span パスワード
+                input(type="password", name="password")
+            div.form-submit
+                input(type="submit", name="submit", value="submit")

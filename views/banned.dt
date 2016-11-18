@@ -1,0 +1,9 @@
+extends layout
+
+block body
+    div
+        form(method="POST", action="/admin/banned")
+
+        div.form-submit
+            input(type="submit", name="csrf_token", value="csrf_token")
+            input(type="submit", name="submit", value="submit")

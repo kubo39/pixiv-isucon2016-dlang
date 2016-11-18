@@ -1,0 +1,10 @@
+extends layout
+
+block body
+    div.isu-title
+        div
+            a(href="/login") ログイン
+        div
+            a(href="/admin/banned") 管理者用ページ
+        div
+            a(href="/logout") ログアウト
