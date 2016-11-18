@@ -13,6 +13,8 @@ import std.stdio;
 import std.uuid;
 
 
+MySQLClient client;
+
 struct User
 {
     ulong id;
@@ -45,15 +47,9 @@ struct Comment
  * Utils
 */
 
-auto db()
-{
-    auto client = new MySQLClient("host=localhost;port=3306;user=root;pwd=password;db=isuconp");
-    return client.lockConnection();
-}
-
 void dbInitialize()
 {
-    auto conn = db();
+    auto conn = client.lockConnection();
     auto sqls = [
         "delete from users where id > 1000",
         "delete from posts where id > 10000",
@@ -74,7 +70,7 @@ string digest(string src)
     import std.process : executeShell, escapeShellCommand;
     import std.string : strip;
     return executeShell(escapeShellCommand("print", `"`,  src, `"`, "| openssl dgst -sha512"))
-                        .output.findSplitAfter("= ")[1].strip;
+        .output.findSplitAfter("= ")[1].strip;
 }
 
 string calculateSalt(string accountName)
@@ -89,7 +85,7 @@ string calculatePasshash(string accountName, string password)
 
 User tryLogin(string accountName, string password)
 {
-    auto conn = db();
+    auto conn = client.lockConnection();
     User[] users;
     conn.execute("select * from users where account_name = ? and del_flg = 0", accountName, (MySQLRow row) {
             users ~= row.toStruct!User;
@@ -109,7 +105,7 @@ User getSessionUser(HTTPServerRequest req, HTTPServerResponse res)
         return User.init;
     if (req.session.isKeySet("user"))
     {
-        auto conn = db();
+        auto conn = client.lockConnection();
         User[] users;
         auto id = req.session.get("user", "id");
         conn.execute("select * from users where id = ?", id, (MySQLRow row) {
@@ -143,14 +139,14 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
 {
     if (getSessionUser(req, res) != User.init)
     {
-        auto conn = db();
+        auto conn = client.lockConnection();
         Post[] posts;
         conn.execute("select id, user_id, text, created_at, mime from posts order by created_at desc limit 5", (MySQLRow row) {
                 posts ~= row.toStruct!Post;
             });
-        res.render!("index.dt", posts);
+        return res.render!("index.dt", posts);
     }
-    res.redirect("/login");
+     return res.redirect("/login");
 }
 
 
@@ -224,8 +220,8 @@ void postRegister(HTTPServerRequest req, HTTPServerResponse res)
     if (!validateUser(accountName, password))
         return res.redirect("/register");
 
+    auto conn = client.lockConnection();
     bool isSet = false;
-    auto conn = db();
     conn.execute("select 1 from users where account_name = ?", accountName, (MySQLRow row) {
             isSet = true;
         });
@@ -263,6 +259,8 @@ version(unittest) {}
 else
 shared static this()
 {
+    client = new MySQLClient("host=localhost;port=3306;user=root;pwd=password;db=isuconp");
+
     auto router = new URLRouter;
     router.get("/", &getIndex);
     router.post("/", &postIndex);
