@@ -70,7 +70,9 @@ string digest(string src)
     import std.process : executeShell, escapeShellCommand;
     import std.string : strip;
     return executeShell(escapeShellCommand("print", `"`,  src, `"`, "| openssl dgst -sha512"))
-        .output.findSplitAfter("= ")[1].strip;
+        .output
+        .findSplitAfter("= ")[1]  // opensslのバージョンによっては (stdin)= というのがつくので取る
+        .strip;
 }
 
 string calculateSalt(string accountName)
@@ -156,21 +158,19 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
     if (me == User.init)
     {
         writeln("postIndex() no login.");
-        res.redirect("/login");
+        return res.redirect("/login");
     }
-    else if (req.form["csrf_token"] != req.session.get("csrf_token", ""))
+
+    if (req.form["csrf_token"] != req.session.get("csrf_token", ""))
     {
         writeln(req.form["csrf_token"]);
         writeln(req.session);
         writeln("トークンが違います");
-        res.writeBody("", 422);
+        return res.writeBody("", 422);
     }
-    else
-    {
-        writeln(req.form["csrf_token"]);
-        writeln(req.session);
-        res.redirect("/login");
-    }
+    writeln(req.form["csrf_token"]);
+    writeln(req.session);
+    return res.redirect("/login");
 }
 
 
@@ -178,7 +178,7 @@ void getLogin(HTTPServerRequest req, HTTPServerResponse res)
 {
     if (getSessionUser(req, res) != User.init)
         return res.redirect("/");
-    res.render!("login.dt");
+    return res.render!("login.dt");
 }
 
 
@@ -212,7 +212,7 @@ void getRegister(HTTPServerRequest req, HTTPServerResponse res)
 void postRegister(HTTPServerRequest req, HTTPServerResponse res)
 {
     if (getSessionUser(req, res) != User.init)
-        res.redirect("/");
+        return res.redirect("/");
 
     auto accountName = req.form["account_name"];
     auto password = req.form["password"];
@@ -245,7 +245,7 @@ void postRegister(HTTPServerRequest req, HTTPServerResponse res)
 void getLogout(HTTPServerRequest req, HTTPServerResponse res)
 {
     res.terminateSession();
-    res.redirect("/");
+    return res.redirect("/");
 }
 
 
