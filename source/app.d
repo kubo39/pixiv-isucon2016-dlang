@@ -199,7 +199,7 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
     {
         auto conn = client.lockConnection();
         Post[] posts;
-        conn.execute("select id, user_id, text, created_at, mime from posts order by created_at desc limit 5", (MySQLRow row) {
+        conn.execute("select id, user_id, text, created_at, mime from posts order by created_at desc limit 20", (MySQLRow row) {
                 posts ~= row.toStruct!(Post, Strict.no);
             });
         posts = makePosts(posts);
