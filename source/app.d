@@ -198,12 +198,13 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
     if (getSessionUser(req, res) != User.init)
     {
         auto conn = client.lockConnection();
+        auto csrf_token = req.session.get("csrf_token", "");
         Post[] posts;
         conn.execute("select id, user_id, text, created_at, mime from posts order by created_at desc limit 20", (MySQLRow row) {
                 posts ~= row.toStruct!(Post, Strict.no);
             });
         posts = makePosts(posts);
-        return res.render!("index.dt", posts);
+        return res.render!("index.dt", posts, csrf_token);
     }
      return res.redirect("/login");
 }
@@ -220,14 +221,10 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
 
     if (req.form["csrf_token"] != req.session.get("csrf_token", ""))
     {
-        writeln(req.form["csrf_token"]);
-        writeln(req.session);
         writeln("トークンが違います");
         return res.writeBody("", 422);
     }
-    writeln(req.form["csrf_token"]);
-    writeln(req.session);
-    return res.redirect("/login");
+    return res.redirect("/");
 }
 
 
