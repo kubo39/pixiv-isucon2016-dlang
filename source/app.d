@@ -6,6 +6,7 @@ import vibe.templ.diet;
 
 import mysql; // mysql-lited
 
+import std.algorithm;
 import std.conv : to;
 import std.datetime;
 import std.regex;
@@ -17,7 +18,7 @@ MySQLClient client;
 
 struct User
 {
-    ulong id;
+    uint id;
     string account_name;
     string passhash;
     bool authority;
@@ -27,20 +28,24 @@ struct User
 
 struct Post
 {
-    ulong id;
-    ulong user_id;
-    string text;
+    uint id;
+    uint user_id;
+    string text;  // `body` is reserved keyword in D.
     Date created_at;
     string mime;
+    uint comment_count;
+    User user;
+    Comment[] comments;
 }
 
 struct Comment
 {
-    ulong id;
-    ulong post_id;
-    ulong user_id;
+    uint id;
+    uint post_id;
+    uint user_id;
     string comment;
     Date created_at;
+    User user;
 }
 
 /**
@@ -94,6 +99,7 @@ User tryLogin(string accountName, string password)
         });
     if (users.length == 0)
         return User.init;
+
     auto user = users[0];
 
     if (calculatePasshash(user.account_name, password) == user.passhash)
@@ -130,7 +136,57 @@ bool validateUser(string accountName, string password)
 unittest
 {
     assert(!validateUser("", ""));
+    assert(validateUser("kubo39", "kubo39"));
 }
+
+Post[] makePosts(Post[] posts, bool allComments=false)
+{
+    auto conn = client.lockConnection();
+    foreach (post; posts)
+    {
+        conn.execute("select count(*) as count from comments where post_id = ?", post.id, (MySQLRow row) {
+                struct DummyCount
+                {
+                    uint[] count;
+                }
+                auto ret  = row.toStruct!DummyCount;
+                if (ret.count.length == 0)
+                    post.comment_count = 0;
+                else
+                    post.comment_count = ret.count[0];
+            });
+
+        auto query = "select * from comments where post_id = ? order by created_at desc";
+        if (!allComments)
+            query ~= " limit 3";
+
+        Comment[] comments;
+        conn.execute(query, post.id, (MySQLRow row) {
+                comments ~= row.toStruct!(Comment, Strict.no);
+            });
+
+        foreach (comment; comments)
+        {
+            conn.execute("select * from users where id = ?", comment.user_id, (MySQLRow row) {
+                    comment.user = row.toStruct!User;
+                });
+        }
+        reverse(comments);
+        post.comments = comments;
+
+        conn.execute("select * from users where id = ?", post.user_id, (MySQLRow row) {
+                post.user = row.toStruct!User;
+            });
+
+        if (!post.user.del_flg)
+            posts ~= post;
+
+        if (posts.length >= 20)
+            break;
+    }
+    return posts;
+}
+
 
 /**
  * Handler.
@@ -144,8 +200,9 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
         auto conn = client.lockConnection();
         Post[] posts;
         conn.execute("select id, user_id, text, created_at, mime from posts order by created_at desc limit 5", (MySQLRow row) {
-                posts ~= row.toStruct!Post;
+                posts ~= row.toStruct!(Post, Strict.no);
             });
+        posts = makePosts(posts);
         return res.render!("index.dt", posts);
     }
      return res.redirect("/login");
