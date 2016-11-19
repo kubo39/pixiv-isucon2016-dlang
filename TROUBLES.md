@@ -89,7 +89,13 @@ source/app.d(51,17): Error: template instance mysql.connection.Connection!(VibeS
 
 ダウングレードして進めている。
 
-# dietテンプレートでダブルクォート内の変数展開ができない
+# (Solved) dietテンプレートでダブルクォート内の変数展開ができない -> ドキュメントが役に立たない
+
+(追記): diet-ngでは記法が変わったようだ。 https://github.com/rejectedsoftware/diet-ng
+
+vibe.dのドキュメントの古い書き方では展開されないのでドキュメントが信頼できないになった。
+
+~~~
 
 dietテンプレート側
 
@@ -110,16 +116,47 @@ dietテンプレート側
 <div class="isu-post" id="pid_!{ post.id }" data-created-at="!{  post.created_at }"><div class="isu-post-header"></div><div class="isu-post-image"><img class="isu-image" src="!{ post.image_url }"></div></div>
 ```
 
-一旦放置。
-
 # デフォルトのエラー用ページがない
 
 Flaskの `abort(422)` 相当のものがない。
 
-とりあえずHTTPServerResponse の `writeBody(string data, int status)` に  `writeBody("", 422)` と書いた。
+とりあえずHTTPServerResponse の `erturn writeBody(string data, int status)` に  `return writeBody("", 422)` と書いた。
 
 # SessionまわりでなにかあるとすぐにSEGVる
 
 原因はSessionでnull参照なんだけどまじで辛い。
 
 これはvibe.dのSessionの実装上どうしようもない。
+
+# `select count(*) as count from comments where post_id = ?` の結果をマッピングするのが一苦労
+
+`select count(*) as count from comments where post_id = ?` の返り値のマッピングがわからん。
+
+# Rangeの実装まわり
+
+構造体Userの配列usersで `if (users.length == 0)` のところを `users.empty` にしたい。
+
+UsersにInputRangeを実装すればよさそうだが楽にできないかな。
+
+# (Solved) MySQLのrowのマッピングがきっちりしてるので(存在しないカラムあるとき)
+
+`auto user = row.toStruct!(User, Strict.no);` のように Strict.no オプションがあれば存在しないカラムに対するマッピングができる。
+
+~~~
+
+```
+struct Post
+{
+    uint id;
+    uint user_id;
+    string text;  // `body` is reserved keyword in D.
+    Date created_at;
+    string mime;
+    // カラムに存在しないメンバ
+    string hoge;
+}
+...
+```
+
+`users ~= row.toStruct!User` のときhogeがあるので例外で落ちる。
+
