@@ -89,11 +89,9 @@ source/app.d(51,17): Error: template instance mysql.connection.Connection!(VibeS
 
 ダウングレードして進めている。
 
-# (Solved) dietテンプレートでダブルクォート内の変数展開ができない -> ドキュメントが役に立たない
+# (Solved) dietテンプレートでダブルクォート内の変数展開ができない
 
 (追記): diet-ngでは記法が変わったようだ。 https://github.com/rejectedsoftware/diet-ng
-
-vibe.dのドキュメントの古い書き方では展開されないのでドキュメントが信頼できないになった。
 
 ~~~
 
@@ -138,7 +136,7 @@ Flaskの `abort(422)` 相当のものがない。
 
 UsersにInputRangeを実装すればよさそうだが楽にできないかな。
 
-# (Solved) MySQLのrowのマッピングがきっちりしてるので(存在しないカラムあるとき)
+# (Solved)MySQLのrowのマッピングがきっちりしてるので存在しないカラムあるときに例外でおちる
 
 `auto user = row.toStruct!(User, Strict.no);` のように Strict.no オプションがあれば存在しないカラムに対するマッピングができる。
 
@@ -159,4 +157,3 @@ struct Post
 ```
 
 `users ~= row.toStruct!User` のときhogeがあるので例外で落ちる。
-
