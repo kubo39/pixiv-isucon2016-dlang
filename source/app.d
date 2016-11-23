@@ -97,7 +97,7 @@ User tryLogin(string accountName, string password)
     conn.execute("select * from users where account_name = ? and del_flg = 0", accountName, (MySQLRow row) {
             users ~= row.toStruct!User;
         });
-    if (users.length == 0)
+    if (!users.length)
         return User.init;
 
     auto user = users[0];
@@ -150,7 +150,7 @@ Post[] makePosts(Post[] posts, bool allComments=false)
                     uint[] count;
                 }
                 auto ret  = row.toStruct!DummyCount;
-                if (ret.count.length == 0)
+                if (!ret.count.length)
                     post.comment_count = 0;
                 else
                     post.comment_count = ret.count[0];
