@@ -139,6 +139,20 @@ unittest
     assert(validateUser("kubo39", "kubo39"));
 }
 
+string imageURL(Post post)
+{
+    import std.format : format;
+    string ext;
+    auto mime = post.mime;
+    if (mime == "image/jpeg")
+        ext = ".jpg";
+    else if (mime == "image/png")
+        ext = ".png";
+    else if (mime == "image/gif")
+        ext = ".gif";
+    return format("/image/%d%s", post.id, ext);
+}
+
 Post[] makePosts(Post[] posts, bool allComments=false)
 {
     auto conn = client.lockConnection();
