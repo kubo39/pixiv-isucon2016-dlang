@@ -15,7 +15,7 @@ mysql-litedのバージョンは `0.3.6`。その後 `3.12` にアップデー�
 
 ```
 update users set del_flg = 0
-core.exception.AssertError@../../../.dub/packages/mysql-lited-0.3.6/mysql-lited/src/mysql/packet.d(53): Assertion failure
+core.exception.AssertError@../../../.dub/packages/mysql-lited-0.3.12/mysql-lited/src/mysql/packet.d(53): Assertion failure
 Segmentation fault
 ```
 
@@ -93,8 +93,6 @@ source/app.d(51,17): Error: template instance mysql.connection.Connection!(VibeS
 
 (追記): diet-ngでは記法が変わったようだ。 https://github.com/rejectedsoftware/diet-ng
 
-~~~
-
 dietテンプレート側
 
 ```
@@ -138,9 +136,7 @@ UsersにInputRangeを実装すればよさそうだが楽にできないかな�
 
 # (Solved)MySQLのrowのマッピングがきっちりしてるので存在しないカラムあるときに例外でおちる
 
-`auto user = row.toStruct!(User, Strict.no);` のように Strict.no オプションがあれば存在しないカラムに対するマッピングができる。
-
-~~~
+(追記) `auto user = row.toStruct!(User, Strict.no);` のように Strict.no オプションがあれば存在しないカラムに対するマッピングができる。
 
 ```
 struct Post
@@ -157,3 +153,34 @@ struct Post
 ```
 
 `users ~= row.toStruct!User` のときhogeがあるので例外で落ちる。
+
+# vibe.dのエラーメッセージがひどい
+
+```
+500 - Internal Server Error
+
+Internal Server Error
+
+Internal error information:
+object.Exception@../../../.dub/packages/vibe-d-0.7.30/vibe-d/source/vibe/core/drivers/threadedfile.d(99): Failed to open file 'euph_st01_01.png'.
+----------------
+??:? vibe.core.drivers.threadedfile.ThreadedFileStream vibe.core.drivers.threadedfile.ThreadedFileStream.__ctor(vibe.inet.path.Path, vibe.core.file.FileMode) [0x1738255e]
+??:? vibe.core.drivers.threadedfile.ThreadedFileStream vibe.core.drivers.libevent2.Libevent2Driver.openFile(vibe.inet.path.Path, vibe.core.file.FileMode) [0x173761e0]
+??:? vibe.core.file.FileStream vibe.core.file.openFile(vibe.inet.path.Path, vibe.core.file.FileMode) [0x173ebab3]
+??:? ubyte[] vibe.core.file.readFile(vibe.inet.path.Path, ubyte[], ulong) [0x17386543]
+??:? void app.postIndex(vibe.http.server.HTTPServerRequest, vibe.http.server.HTTPServerResponse) [0x172649ae]
+??:? void std.functional.DelegateFaker!(void function(vibe.http.server.HTTPServerRequest, vibe.http.server.HTTPServerResponse)*).DelegateFaker.doIt(vibe.http.server.HTTPServerRequest, vibe.http.server.HTTPServerResponse) [0x1730d27b]
+??:? _D4vibe4http6router9URLRouter13handleRequestMFC4vibe4http6server17HTTPServerRequestC4vibe4http6server18HTTPServerResponseZ21__T9__lambda4TmTAAyaZ9__lambda4MFmMAAyaZb [0x172eff27]
+??:? const(bool function(immutable(char)[], scope bool delegate(ulong, scope immutable(char)[][]))) vibe.http.router.MatchTree!(vibe.http.router.Route).MatchTree.doMatch [0x172f0d1c]
+??:? bool vibe.http.router.MatchTree!(vibe.http.router.Route).MatchTree.match(immutable(char)[], scope bool delegate(ulong, scope immutable(char)[][])) [0x172f057b]
+??:? void vibe.http.router.URLRouter.handleRequest(vibe.http.server.HTTPServerRequest, vibe.http.server.HTTPServerResponse) [0x172efbcb]
+??:? bool vibe.http.server.handleRequest(vibe.core.stream.Stream, vibe.core.net.TCPConnection, vibe.http.server.HTTPListenInfo, ref vibe.http.server.HTTPServerSettings, ref bool) [0x1732dd93]
+??:? void vibe.http.server.handleHTTPConnection(vibe.core.net.TCPConnection, vibe.http.server.HTTPListenInfo) [0x1732c35c]
+??:? void vibe.http.server.listenHTTPPlain(vibe.http.server.HTTPServerSettings).doListen(vibe.http.server.HTTPListenInfo, bool, bool).__lambda4(vibe.core.net.TCPConnection) [0x1732bcd8]
+??:? void vibe.core.drivers.libevent2_tcp.ClientTask.execute() [0x173eb615]
+??:? void vibe.core.core.makeTaskFuncInfo!(void delegate()).makeTaskFuncInfo(ref void delegate()).callDelegate(vibe.core.core.TaskFuncInfo*) [0x173748f4]
+??:? void vibe.core.core.CoreTask.run() [0x17372232]
+??:? void core.thread.Fiber.run() [0x25520f3b]
+??:? fiber_entryPoint [0x255201f6]
+??:? [0xffffffff]
+```
