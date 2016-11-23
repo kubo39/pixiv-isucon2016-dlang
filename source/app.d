@@ -303,6 +303,18 @@ void getLogout(HTTPServerRequest req, HTTPServerResponse res)
 }
 
 
+void getPosts(HTTPServerRequest req, HTTPServerResponse res)
+{
+    auto conn = client.lockConnection();
+    // auto maxCreatedAt = req.form["max_created_at"];
+
+    Post[] posts;
+    conn.execute("select id, user_id, text, mime, created_at from posts order by created_at desc limit 20", (MySQLRow row) {
+            posts ~= makePosts(posts);
+        });
+    return res.render!("posts.dt", posts);
+}
+
 // void getInitialize(HTTPServerRequest req, HTTPServerResponse res)
 // {
 //     dbInitialize();
@@ -323,6 +335,8 @@ shared static this()
     router.get("/register", &getRegister);
     router.post("/register", &postRegister);
     router.get("/logout", &getLogout);
+    router.get("/posts", &getPosts);
+
     // router.get("/initialize", &getInitialize);
     dbInitialize();
 
