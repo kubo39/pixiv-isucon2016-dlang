@@ -331,6 +331,25 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
 }
 
 
+void getPostId(HTTPServerRequest req, HTTPServerResponse res)
+{
+    auto conn = client.lockConnection();
+    Post[] posts;
+    conn.execute("select * from posts where id = ?", req.params["id"], (MySQLRow row) {
+            posts ~= row.toStruct!(Post, Strict.no);
+        });
+    posts = makePosts(posts, true);  // assign `allComments` = true.
+    if (!posts.length)
+        return res.writeBody("", 404);
+    auto me = getSessionUser(req, res);
+    if (me == User.init)
+        return res.redirect("/");
+    auto csrf_token = req.session.get("csrf_token", "");
+    auto post = posts[0];
+    return res.render!("post.dt", post, csrf_token);
+}
+
+
 // void getInitialize(HTTPServerRequest req, HTTPServerResponse res)
 // {
 //     dbInitialize();
@@ -352,6 +371,7 @@ shared static this()
     router.post("/register", &postRegister);
     router.get("/logout", &getLogout);
     router.get("/posts", &getPosts);
+    router.get("/post/:id", &getPostId);
 
     // router.get("/initialize", &getInitialize);
     dbInitialize();
