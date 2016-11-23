@@ -324,10 +324,12 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
 
     Post[] posts;
     conn.execute("select id, user_id, text, mime, created_at from posts order by created_at desc limit 20", (MySQLRow row) {
-            posts ~= makePosts(posts);
+            posts ~= row.toStruct!(Post, Strict.no);
         });
+    posts = makePosts(posts);
     return res.render!("posts.dt", posts);
 }
+
 
 // void getInitialize(HTTPServerRequest req, HTTPServerResponse res)
 // {
