@@ -153,10 +153,11 @@ string imageURL(Post post)
     return format("/image/%d%s", post.id, ext);
 }
 
-Post[] makePosts(Post[] posts, bool allComments=false)
+Post[] makePosts(Post[] results, bool allComments=false)
 {
     auto conn = client.lockConnection();
-    foreach (post; posts)
+    Post[] posts;
+    foreach (post; results)
     {
         conn.execute("select count(*) as count from comments where post_id = ?", post.id, (MySQLRow row) {
                 struct DummyCount
