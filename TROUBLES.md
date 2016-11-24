@@ -128,32 +128,6 @@ Flaskの `abort(422)` 相当のものがない。
 
 `select count(*) as count from comments where post_id = ?` の返り値のマッピングがわからん。
 
-# Rangeの実装まわり
-
-構造体Userの配列usersで `if (users.length == 0)` のところを `users.empty` にしたい。
-
-UsersにInputRangeを実装すればよさそうだが楽にできないかな。
-
-# (Solved)MySQLのrowのマッピングがきっちりしてるので存在しないカラムあるときに例外でおちる
-
-(追記) `auto user = row.toStruct!(User, Strict.no);` のように Strict.no オプションがあれば存在しないカラムに対するマッピングができる。
-
-```
-struct Post
-{
-    uint id;
-    uint user_id;
-    string text;  // `body` is reserved keyword in D.
-    Date created_at;
-    string mime;
-    // カラムに存在しないメンバ
-    string hoge;
-}
-...
-```
-
-`users ~= row.toStruct!User` のときhogeがあるので例外で落ちる。
-
 # vibe.dのエラーメッセージがひどい
 
 ```
