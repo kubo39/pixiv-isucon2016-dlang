@@ -5,7 +5,7 @@
     "targetType": "executable",
     "dependencies": {
         "vibe-d:http": "0.7.30",
-        "mysql-lited": "0.3.12"
+        "mysql-lited": "0.3.15"
     },
     "versions": ["VibeDefaultMain"]
 }
