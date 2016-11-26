@@ -332,7 +332,7 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
 }
 
 
-void getPostId(HTTPServerRequest req, HTTPServerResponse res)
+void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
 {
     auto conn = client.lockConnection();
     Post[] posts;
@@ -372,7 +372,7 @@ shared static this()
     router.post("/register", &postRegister);
     router.get("/logout", &getLogout);
     router.get("/posts", &getPosts);
-    router.get("/post/:id", &getPostId);
+    router.get("/posts/:id", &getPostsId);
 
     // router.get("/initialize", &getInitialize);
     dbInitialize();
