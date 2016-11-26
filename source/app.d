@@ -3,6 +3,7 @@ import vibe.http.server;
 import vibe.http.router;
 import vibe.http.session;
 import vibe.templ.diet;
+import vibe.http.fileserver;
 
 import mysql; // mysql-lited
 
@@ -373,6 +374,8 @@ shared static this()
     router.get("/logout", &getLogout);
     router.get("/posts", &getPosts);
     router.get("/posts/:id", &getPostsId);
+
+    router.get("*", serveStaticFiles("../public/"));
 
     // router.get("/initialize", &getInitialize);
     dbInitialize();

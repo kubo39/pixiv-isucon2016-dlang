@@ -3,6 +3,7 @@ doctype html
 html
     head
         title Iscogram
+        link(rel="stylesheet", href="/css/style.css")
 
     body
         div.header
