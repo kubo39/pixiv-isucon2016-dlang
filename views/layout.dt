@@ -3,7 +3,7 @@ doctype html
 html
     head
         title Iscogram
-        link(rel="stylesheet", href="/css/style.css")
+        link(rel="stylesheet", href="/css/style.css", type="text/css")
 
     body
         div.header
@@ -15,3 +15,7 @@ html
                 div
                     a(href="/logout") ログアウト
             block body
+        script(type="text/javascript", src="/js/jquery-2.2.0.js")
+        script(type="text/javascript", src="/js/jquery.timeago.js")
+        script(type="text/javascript", src="/js/jquery.timeago.ja.js")
+        script(type="text/javascript", src="/js/main.js")
