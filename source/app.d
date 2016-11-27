@@ -163,13 +163,9 @@ Post[] makePosts(Post[] results, bool allComments=false)
         conn.execute("select count(*) as count from comments where post_id = ?", post.id, (MySQLRow row) {
                 struct DummyCount
                 {
-                    uint[] count;
+                    uint count;
                 }
-                auto ret  = row.toStruct!DummyCount;
-                if (!ret.count.length)
-                    post.comment_count = 0;
-                else
-                    post.comment_count = ret.count[0];
+                post.comment_count = row.toStruct!DummyCount.count;
             });
 
         auto query = "select * from comments where post_id = ? order by created_at desc";
