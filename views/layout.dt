@@ -6,14 +6,8 @@ html
         link(rel="stylesheet", href="/css/style.css", type="text/css")
 
     body
-        div.header
-            div.isu-title
-                h1 Iscogram
-            div.isu-header-menu
-                div ログイン
-                div 管理者用ページ
-                div
-                    a(href="/logout") ログアウト
+        div.container
+            include header
             block body
         script(type="text/javascript", src="/js/jquery-2.2.0.js")
         script(type="text/javascript", src="/js/jquery.timeago.js")

@@ -1,6 +1,4 @@
-extends layout
-
-block body
+div.header
     div.isu-title
         div
             a(href="/login") ログイン
