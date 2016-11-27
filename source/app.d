@@ -153,6 +153,8 @@ Post[] makePosts(Post[] results, bool allComments=false)
 {
     auto conn = client.lockConnection();
     Post[] posts;
+    posts.reserve(20);
+
     foreach (post; results)
     {
         conn.execute("select count(*) as count from comments where post_id = ?", post.id, (MySQLRow row) {
@@ -207,6 +209,8 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
         auto conn = client.lockConnection();
         auto csrf_token = req.session.get("csrf_token", "");
         Post[] posts;
+        posts.reserve(20);
+
         conn.execute("select id, user_id, text, created_at, mime from posts order by created_at desc limit 20", (MySQLRow row) {
                 posts ~= row.toStruct!(Post, Strict.no);
             });
@@ -316,6 +320,8 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
     // auto maxCreatedAt = req.form["max_created_at"];
 
     Post[] posts;
+    posts.reserve(20);
+
     conn.execute("select id, user_id, text, mime, created_at from posts order by created_at desc limit 20", (MySQLRow row) {
             posts ~= row.toStruct!(Post, Strict.no);
         });
@@ -331,6 +337,8 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
 {
     auto conn = client.lockConnection();
     Post[] posts;
+    posts.reserve(20);
+
     conn.execute("select * from posts where id = ?", req.params["id"], (MySQLRow row) {
             posts ~= row.toStruct!(Post, Strict.no);
         });
@@ -357,6 +365,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
         return res.writeBody("", 404);
 
     Post[] posts;
+    posts.reserve(20);
     conn.execute("select id, user_id, text, mime, created_at from posts where user_id = ? order by created_at desc", user.id, (MySQLRow row) {
             posts ~= row.toStruct!(Post, Strict.no);
         });
