@@ -1,5 +1,8 @@
 div.header
     div.isu-title
+        h1
+            a(href="/") Iscogram
+    div.isu-header-menu
         div
             a(href="/login") ログイン
         div
