@@ -1,0 +1,14 @@
+extends layout
+
+block body
+    div.isu-user
+        div
+            span.isu-user-account-name #{ user.account_name } さんのページ
+        div 投稿数
+            span.isu-post-count #{ postCount }
+        div コメント数
+            span.isu-comment-count #{ commentCount }
+        div 被コメント数
+            span.isu-commented-count #{ commentedCount }
+    div.isu-posts
+        include posts

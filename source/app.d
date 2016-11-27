@@ -325,7 +325,10 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
             posts ~= row.toStruct!(Post, Strict.no);
         });
     posts = makePosts(posts);
-    return res.render!("posts.dt", posts);
+
+    string csrf_token = "";
+
+    return res.render!("posts.dt", posts, csrf_token);
 }
 
 
@@ -347,6 +350,59 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
     return res.render!("post.dt", post, csrf_token);
 }
 
+
+void getUserList(HTTPServerRequest req, HTTPServerResponse res)
+{
+    auto conn = client.lockConnection();
+    User user;
+    conn.execute("select * from users where account_name = ? and del_flg = 0", req.params["account_name"], (MySQLRow row) {
+            user = row.toStruct!User;
+        });
+    if (user == User.init)
+        return res.writeBody("", 404);
+
+    Post[] posts;
+    conn.execute("select id, user_id, text, mime, created_at from posts where user_id = ? order by created_at desc", user.id, (MySQLRow row) {
+            posts ~= row.toStruct!(Post, Strict.no);
+        });
+    posts = makePosts(posts);
+
+    uint commentCount;
+    conn.execute("select count(*) as count from comments where user_id = ?", user.id, (MySQLRow row) {
+            struct DummyCount
+            {
+                uint count;
+            }
+            commentCount = row.toStruct!DummyCount.count;
+        });
+
+    uint[] postIds;
+    conn.execute("select id from posts where user_id = ?", user.id, (MySQLRow row) {
+            postIds ~= row.toStruct!(Post, Strict.no).id;
+        });
+    size_t postCount = postIds.length;
+
+    uint commentedCount;
+    if (postCount)
+    {
+        conn.execute("select count(*) as count from comments where post_id in ?", postIds, (MySQLRow row) {
+                struct DummyCount
+                {
+                    uint count;
+                }
+                commentedCount = row.toStruct!DummyCount.count;
+            });
+    }
+
+    auto me = getSessionUser(req, res);
+    string csrf_token;
+    if (me != User.init)
+        csrf_token = req.session.get("csrf_token", "");
+    else
+        csrf_token = "";
+
+    return res.render!("user.dt", user, posts, postCount, commentCount, commentedCount, csrf_token);
+}
 
 // void getInitialize(HTTPServerRequest req, HTTPServerResponse res)
 // {
@@ -370,6 +426,7 @@ shared static this()
     router.get("/logout", &getLogout);
     router.get("/posts", &getPosts);
     router.get("/posts/:id", &getPostsId);
+    router.get("/:account_name", &getUserList);
 
     router.get("*", serveStaticFiles("../public/"));
 
