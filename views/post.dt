@@ -1,5 +1,7 @@
 div.isu-post(id="pid_#{ post.id }", data-created-at="#{  post.created_at }")
     div.isu-post-header
+        a.isu-post-permalink(href="/posts/#{ post.id }")
+            time.timeago(datetime="#{ post.created_at }")
     div.isu-post-image
         img.isu-image(src="image_url")
     div.isu-post-text
@@ -8,9 +10,11 @@ div.isu-post(id="pid_#{ post.id }", data-created-at="#{  post.created_at }")
         div.isu-post-comment-count
             comments:
             b #{ post.comment_count }
-        div.isu-comment
+        - foreach (comment; post.comments)
+            div.isu-comment
+                span.isu-comment-text #{ comment.comment }
         div.isu-comment-form
-            form(method="POST", name="comment", action="/comment")
+            form(method="POST", action="/comment")
                 input(type="text", name="comment")
                 input(type="hidden", name="post_id", value="#{ post.id }")
                 input(type="hidden", name="csrf_token", value="#{ csrf_token }")
