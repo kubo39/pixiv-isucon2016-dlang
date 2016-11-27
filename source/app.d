@@ -395,11 +395,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     }
 
     auto me = getSessionUser(req, res);
-    string csrf_token;
-    if (me != User.init)
-        csrf_token = req.session.get("csrf_token", "");
-    else
-        csrf_token = "";
+    string csrf_token = (me != User.init) ? req.session.get("csrf_token", "") : "";
 
     return res.render!("user.dt", user, posts, postCount, commentCount, commentedCount, csrf_token);
 }
