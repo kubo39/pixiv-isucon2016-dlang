@@ -94,15 +94,10 @@ string calculatePasshash(string accountName, string password)
 User tryLogin(string accountName, string password)
 {
     auto conn = client.lockConnection();
-    User[] users;
+    User user;
     conn.execute("select * from users where account_name = ? and del_flg = 0", accountName, (MySQLRow row) {
-            users ~= row.toStruct!User;
+            user = row.toStruct!User;
         });
-    if (!users.length)
-        return User.init;
-
-    auto user = users[0];
-
     if (calculatePasshash(user.account_name, password) == user.passhash)
         return user;
     return User.init;
@@ -115,12 +110,12 @@ User getSessionUser(HTTPServerRequest req, HTTPServerResponse res)
     if (req.session.isKeySet("user"))
     {
         auto conn = client.lockConnection();
-        User[] users;
+        User user;
         auto id = req.session.get("user", "id");
         conn.execute("select * from users where id = ?", id, (MySQLRow row) {
-                users ~= row.toStruct!User;
+                user = row.toStruct!User;
             });
-        return users[0];
+        return user;
     }
     return User.init;
 }
