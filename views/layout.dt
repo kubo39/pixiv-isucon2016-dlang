@@ -4,7 +4,7 @@ html
     head
         meta(charset="utf-8")
         title Iscogram
-        link(rel="stylesheet", href="/css/style.css", type="text/css")
+        link(rel="stylesheet", href="/css/style.css", type="text/css", media="screen")
 
     body
         div.container
