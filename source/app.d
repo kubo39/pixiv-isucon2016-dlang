@@ -206,7 +206,7 @@ Post[] makePosts(Post[] results, bool allComments=false)
 
 void getIndex(HTTPServerRequest req, HTTPServerResponse res)
 {
-    if (getSessionUser(req, res) != User.init)
+    if (getSessionUser(req, res) !is User.init)
     {
         auto conn = client.lockConnection();
         auto csrf_token = req.session.get("csrf_token", "");
@@ -226,7 +226,7 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
 void postIndex(HTTPServerRequest req, HTTPServerResponse res)
 {
     auto me = getSessionUser(req, res);
-    if (me == User.init)
+    if (me is User.init)
     {
         writeln("postIndex() no login.");
         return res.redirect("/login");
@@ -243,7 +243,7 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
 
 void getLogin(HTTPServerRequest req, HTTPServerResponse res)
 {
-    if (getSessionUser(req, res) != User.init)
+    if (getSessionUser(req, res) !is User.init)
         return res.redirect("/");
     return res.render!("login.dt");
 }
@@ -251,11 +251,11 @@ void getLogin(HTTPServerRequest req, HTTPServerResponse res)
 
 void postLogin(HTTPServerRequest req, HTTPServerResponse res)
 {
-    if (getSessionUser(req, res) != User.init)
+    if (getSessionUser(req, res) !is User.init)
         return res.redirect("/");
 
     auto user = tryLogin(req.form["account_name"], req.form["password"]);
-    if (user != User.init)
+    if (user !is User.init)
     {
         if (!req.session)
             req.session = res.startSession();
@@ -270,7 +270,7 @@ void postLogin(HTTPServerRequest req, HTTPServerResponse res)
 void getRegister(HTTPServerRequest req, HTTPServerResponse res)
 {
     auto user = getSessionUser(req, res);
-    if (user != User.init)
+    if (user !is User.init)
         return res.redirect("/");
     return res.render!("register.dt");
 }
@@ -278,7 +278,7 @@ void getRegister(HTTPServerRequest req, HTTPServerResponse res)
 
 void postRegister(HTTPServerRequest req, HTTPServerResponse res)
 {
-    if (getSessionUser(req, res) != User.init)
+    if (getSessionUser(req, res) !is User.init)
         return res.redirect("/");
 
     auto accountName = req.form["account_name"];
@@ -348,7 +348,7 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
     if (!posts.length)
         return res.writeBody("", 404);
     auto me = getSessionUser(req, res);
-    if (me == User.init)
+    if (me is User.init)
         return res.redirect("/");
     auto csrf_token = req.session.get("csrf_token", "");
     auto post = posts[0];
@@ -363,7 +363,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     conn.execute("select * from users where account_name = ? and del_flg = 0", req.params["account_name"], (MySQLRow row) {
             user = row.toStruct!User;
         });
-    if (user == User.init)
+    if (user is User.init)
         return res.writeBody("", 404);
 
     Post[] posts;
@@ -401,7 +401,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     }
 
     auto me = getSessionUser(req, res);
-    string csrf_token = (me != User.init) ? req.session.get("csrf_token", "") : "";
+    string csrf_token = (me !is User.init) ? req.session.get("csrf_token", "") : "";
 
     return res.render!("user.dt", user, posts, postCount, commentCount, commentedCount, csrf_token);
 }
