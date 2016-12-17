@@ -235,7 +235,7 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
     if (req.form["csrf_token"] != req.session.get("csrf_token", ""))
     {
         writeln("トークンが違います");
-        return res.writeBody("", 422);
+        enforceHTTP(false, HTTPStatus.unprocessableEntity, httpStatusText(HTTPStatus.unprocessableEntity));
     }
     return res.redirect("/");
 }
@@ -346,7 +346,7 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
         });
     posts = makePosts(posts, true);  // assign `allComments` = true.
     if (!posts.length)
-        return res.writeBody("", 404);
+        enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
     auto me = getSessionUser(req, res);
     if (me is User.init)
         return res.redirect("/");
