@@ -169,7 +169,9 @@ Post[] makePosts(Post[] results, bool allComments=false)
         select.setArgs(post.id);
         auto range = select.query();
         auto row = range.front;
-        post.comment_count = row.toStruct(DummyCount).count;
+        DummyCount dummy;
+        row.toStruct(dummy);
+        post.comment_count = dummy.count;
 
         auto queryStmt = "select * from comments where post_id = ? order by created_at desc";
         if (!allComments)
@@ -180,25 +182,30 @@ Post[] makePosts(Post[] results, bool allComments=false)
         select.setArgs(post.id);
         range = select.query();
         Comment comment;
-        foreach (row; range) {
-            comments ~= row.toStruct(comment);
+        foreach (r; range) {
+            r.toStruct(comment);
+            comments ~= comment;
         }
 
-        foreach (comment; comments) {
+        foreach (c; comments) {
             select = conn.prepare("select * from users where id = ?");
-            select.setArg(comment.user_id);
+            select.setArgs(comment.user_id);
             range = select.query();
             row = range.front;
-            comment.user = row.toStruct(User);
+            User user;
+            row.toStruct(user);
+            c.user = user;
         }
         reverse(comments);
         post.comments = comments;
 
         select = conn.prepare("select * from users where id = ?");
-        select.setArg(post.user_id);
+        select.setArgs(post.user_id);
         range = select.query();
         row = range.front;
-        post.user = row.toStruct(User);
+        User user;
+        row.toStruct(user);
+        post.user = user;
 
         if (!post.user.del_flg)
             posts ~= post;
@@ -223,8 +230,11 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
         posts.reserve(POST_PER_PAGE);
 
         auto range = conn.query("select id, user_id, text, created_at, mime from posts order by created_at desc limit 20");
-        auto row = range.first;
-        posts ~= row.toStruct(Post);
+        foreach (row; range) {
+            Post post;
+            row.toStruct(post);
+            posts ~= post;
+        }
         posts = makePosts(posts);
         return res.render!("index.dt", posts, csrf_token);
     }
@@ -295,7 +305,7 @@ void postRegister(HTTPServerRequest req, HTTPServerResponse res)
 
     auto conn = client.lockConnection();
     auto select = conn.prepare("select 1 from users where account_name = ?");
-    select.setArg(accountName);
+    select.setArgs(accountName);
     auto row = select.query();
     if (row.count != 0) {
         stderr.writeln("アカウント名がすでに使われています");
@@ -308,7 +318,7 @@ void postRegister(HTTPServerRequest req, HTTPServerResponse res)
 
     if (!req.session)
         req.session = res.startSession();
-    req.session.set("user", conn.insertID.to!string);
+    req.session.set("user", conn.lastInsertID.to!string);
     req.session.set("csrf_token", randomUUID().to!string);
     return res.redirect("/");
 }
@@ -332,7 +342,8 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
     auto range = conn.query("select id, user_id, text, mime, created_at from posts order by created_at desc limit 20");
     Post post;
     foreach (row; range) {
-        posts ~= row.toStruct(post);
+        row.toStruct(post);
+        posts ~= post;
     }
     posts = makePosts(posts);
     string csrf_token = "";
@@ -347,11 +358,12 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
     posts.reserve(POST_PER_PAGE);
 
     auto select = conn.prepare("select * from posts where id = ?");
-    select.setArg(req.params["id"]);
+    select.setArgs(req.params["id"]);
     auto range = select.query();
-    Post post;
     foreach (row; range) {
-        posts ~= row.toStruct(post);
+        Post post;
+        row.toStruct(post);
+        posts ~= post;
     }
     posts = makePosts(posts, true);  // assign `allComments` = true.
     if (!posts.length)
@@ -369,7 +381,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
 {
     auto conn = client.lockConnection();
     auto select = conn.prepare("select * from users where account_name = ? and del_flg = 0");
-    select.setArg(req.params["account_name"]);
+    select.setArgs(req.params["account_name"]);
     auto range = select.query();
     auto row = range.front;
     User user;
@@ -382,37 +394,41 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     posts.reserve(POST_PER_PAGE);
 
     select = conn.prepare("select id, user_id, text, mime, created_at from posts where user_id = ? order by created_at desc");
-    select.setArg(user.id);
+    select.setArgs(user.id);
     range = select.query();
     Post post;
-    foreach (row; range) {
-        posts ~= row.toStruct(post);
+    foreach (r; range) {
+        r.toStruct(post);
+        posts ~= post;
     }
     posts = makePosts(posts);
 
     select = conn.prepare("select count(*) as count from comments where user_id = ?");
-    select.setArg(user.id);
+    select.setArgs(user.id);
     range = select.query();
     row = range.front;
     DummyCount dummy;
-    uint commentCount = row.toStruct(dummy).count;
+    row.toStruct(dummy);
+    uint commentCount = dummy.count;
 
     uint[] postIds;
     select = conn.prepare("select id from posts where user_id = ?");
-    select.setArg(user.id);
+    select.setArgs(user.id);
     range = select.query();
-    foreach (row; range) {
-        postIds ~= row.toStruct(post).id;
+    foreach (r; range) {
+        r.toStruct(post);
+        postIds ~= post.id;
     }
     size_t postCount = postIds.length;
 
     uint commentedCount;
     if (postCount) {
-        auto select = conn.prepare("select count(*) as count from comments where post_id in ?");
+        select = conn.prepare("select count(*) as count from comments where post_id in ?");
         select.setArgs(postIds);
-        auto range = select.query();
-        auto row = range.front;
-        commentedCount = row.toStruct(dummy).count;
+        range = select.query();
+        row = range.front;
+        row.toStruct(dummy);
+        commentedCount = dummy.count;
     }
 
     auto me = getSessionUser(req, res);
@@ -432,7 +448,6 @@ else
 shared static this()
 {
     client = new MySQLPool("host=localhost;port=3306;user=root;pwd=password;db=isuconp");
-    scope(exit) client.close;
 
     auto router = new URLRouter;
     router.get("/", &getIndex);
