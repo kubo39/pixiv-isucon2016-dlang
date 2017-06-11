@@ -4,7 +4,7 @@
     "targetName": "isuapp",
     "targetType": "executable",
     "dependencies": {
-        "vibe-d:http": "0.7.31",
+        "vibe-d": "0.7.31",
         "mysql-native": "1.1.0"
     },
     "versions": ["VibeDefaultMain"]

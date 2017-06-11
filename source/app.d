@@ -117,12 +117,12 @@ User getSessionUser(HTTPServerRequest req, HTTPServerResponse res)
         return User.init;
     if (req.session.isKeySet("user")) {
         auto conn = client.lockConnection();
-        User user;
         auto id = req.session.get("user", "id");
         auto select = conn.prepare("select * from users where id = ?");
         select.setArgs(id);
         auto range = select.query();
         auto row = range.front;
+        User user;
         row.toStruct(user);
         return user;
     }
