@@ -313,7 +313,7 @@ void postRegister(HTTPServerRequest req, HTTPServerResponse res)
     }
 
     auto insert = conn.prepare("insert into users (account_name, passhash) values (?, ?)");
-    select.setArgs(accountName, calculatePasshash(accountName, password));
+    insert.setArgs(accountName, calculatePasshash(accountName, password));
     insert.exec();
 
     if (!req.session)
