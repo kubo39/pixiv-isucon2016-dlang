@@ -36,7 +36,7 @@ struct Post
     string body_;
     DateTime created_at;
     string mime;
-    int comment_count;
+    long comment_count;
     User user;
     Comment[] comments;
 }
@@ -176,7 +176,7 @@ Post[] makePosts(Post[] results, bool allComments=false)
         select.setArgs(post.id);
         auto range = select.query();
         auto row = range.front;
-        post.comment_count = row[0].get!(int);
+        post.comment_count = row[0].get!(long);
 
         auto queryStmt = "select * from comments where post_id = ? order by created_at desc";
         if (!allComments)
@@ -251,7 +251,6 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
 
         auto range = conn.query("select id, user_id, body, created_at, mime from posts order by created_at desc limit 20");
         foreach (row; range) {
-            writeln(row);
             posts ~= Post(
                           row[0].get!(int),
                           row[1].get!(int),
