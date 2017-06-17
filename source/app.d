@@ -13,7 +13,7 @@ import std.datetime;
 import std.regex;
 import std.stdio;
 import std.uuid;
-
+import std.variant;
 
 immutable POST_PER_PAGE = 20;
 
@@ -21,40 +21,36 @@ MySQLPool client;
 
 struct User
 {
-    uint id;
+    int id;
     string account_name;
     string passhash;
     bool authority;
     bool del_flg;
-    Date created_at;
+    DateTime created_at;
 }
 
 struct Post
 {
-    uint id;
-    uint user_id;
-    string text;  // `body` is reserved keyword in D.
-    Date created_at;
+    int id;
+    int user_id;
+    string body_;
+    DateTime created_at;
     string mime;
-    uint comment_count;
+    int comment_count;
     User user;
     Comment[] comments;
 }
 
 struct Comment
 {
-    uint id;
-    uint post_id;
-    uint user_id;
+    int id;
+    int post_id;
+    int user_id;
     string comment;
-    Date created_at;
+    DateTime created_at;
     User user;
 }
 
-struct DummyCount
-{
-    uint count;
-}
 
 /**
  * Utils
@@ -81,7 +77,7 @@ string digest(string src)
     import std.algorithm : findSplitAfter;
     import std.process : executeShell, escapeShellCommand;
     import std.string : strip;
-    return executeShell(escapeShellCommand("print", `"`,  src, `"`, "| openssl dgst -sha512"))
+    return executeShell(`echo "` ~ escapeShellCommand(src) ~ `"| openssl dgst -sha512`)
         .output
         .findSplitAfter("= ")[1]  // opensslのバージョンによっては (stdin)= というのがつくので取る
         .strip;
@@ -100,12 +96,18 @@ string calculatePasshash(string accountName, string password)
 User tryLogin(string accountName, string password)
 {
     auto conn = client.lockConnection();
-    User user;
     auto select = conn.prepare("select * from users where account_name = ? and del_flg = 0");
     select.setArgs(accountName);
-    auto range = select.query();
-    auto row = range.front;
-    row.toStruct(user);
+    ResultRange range = select.query();
+    Row row = range.front;
+    auto user = User(
+                     row[0].get!(int),
+                     row[1].get!(string),
+                     row[2].get!(string),
+                     row[3].get!(byte).to!bool,
+                     row[4].get!(byte).to!bool,
+                     row[5].get!(DateTime)
+                     );
     if (calculatePasshash(user.account_name, password) == user.passhash)
         return user;
     return User.init;
@@ -122,9 +124,14 @@ User getSessionUser(HTTPServerRequest req, HTTPServerResponse res)
         select.setArgs(id);
         auto range = select.query();
         auto row = range.front;
-        User user;
-        row.toStruct(user);
-        return user;
+        return User(
+                    row[0].get!(int),
+                    row[1].get!(string),
+                    row[2].get!(string),
+                    row[3].get!(byte).to!bool,
+                    row[4].get!(byte).to!bool,
+                    row[5].get!(DateTime)
+                    );
     }
     return User.init;
 }
@@ -169,9 +176,7 @@ Post[] makePosts(Post[] results, bool allComments=false)
         select.setArgs(post.id);
         auto range = select.query();
         auto row = range.front;
-        DummyCount dummy;
-        row.toStruct(dummy);
-        post.comment_count = dummy.count;
+        post.comment_count = row[0].get!(int);
 
         auto queryStmt = "select * from comments where post_id = ? order by created_at desc";
         if (!allComments)
@@ -181,20 +186,30 @@ Post[] makePosts(Post[] results, bool allComments=false)
         select = conn.prepare(queryStmt);
         select.setArgs(post.id);
         range = select.query();
-        Comment comment;
         foreach (r; range) {
-            r.toStruct(comment);
-            comments ~= comment;
+            comments ~= Comment(
+                                r[0].get!(int),
+                                r[1].get!(int),
+                                r[2].get!(int),
+                                r[3].get!(string),
+                                r[4].get!(DateTime),
+                                r[5].get!(User)
+                                );
         }
 
         foreach (c; comments) {
             select = conn.prepare("select * from users where id = ?");
-            select.setArgs(comment.user_id);
+            select.setArgs(c.user_id);
             range = select.query();
             row = range.front;
-            User user;
-            row.toStruct(user);
-            c.user = user;
+            c.user = User(
+                          row[0].get!(int),
+                          row[1].get!(string),
+                          row[2].get!(string),
+                          row[3].get!(byte).to!bool,
+                          row[4].get!(byte).to!bool,
+                          row[5].get!(DateTime)
+                          );
         }
         reverse(comments);
         post.comments = comments;
@@ -203,9 +218,14 @@ Post[] makePosts(Post[] results, bool allComments=false)
         select.setArgs(post.user_id);
         range = select.query();
         row = range.front;
-        User user;
-        row.toStruct(user);
-        post.user = user;
+        post.user =User(
+                        row[0].get!(int),
+                        row[1].get!(string),
+                        row[2].get!(string),
+                        row[3].get!(byte).to!bool,
+                        row[4].get!(byte).to!bool,
+                        row[5].get!(DateTime)
+                        );
 
         if (!post.user.del_flg)
             posts ~= post;
@@ -229,11 +249,19 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
         Post[] posts;
         posts.reserve(POST_PER_PAGE);
 
-        auto range = conn.query("select id, user_id, text, created_at, mime from posts order by created_at desc limit 20");
+        auto range = conn.query("select id, user_id, body, created_at, mime from posts order by created_at desc limit 20");
         foreach (row; range) {
-            Post post;
-            row.toStruct(post);
-            posts ~= post;
+            writeln(row);
+            posts ~= Post(
+                          row[0].get!(int),
+                          row[1].get!(int),
+                          row[2].get!(string),
+                          row[3].get!(DateTime),
+                          row[4].get!(string),
+                          // row[5].get!(int),
+                          // row[6].get!(User),
+                          // row[7].get!(Comment[]),
+                          );
         }
         posts = makePosts(posts);
         return res.render!("index.dt", posts, csrf_token);
@@ -339,11 +367,19 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    auto range = conn.query("select id, user_id, text, mime, created_at from posts order by created_at desc limit 20");
+    auto range = conn.query("select id, user_id, body, mime, created_at from posts order by created_at desc limit 20");
     Post post;
     foreach (row; range) {
-        row.toStruct(post);
-        posts ~= post;
+        posts ~= Post(
+                      row[0].get!(int),
+                      row[1].get!(int),
+                      row[2].get!(string),
+                      row[3].get!(DateTime),
+                      row[4].get!(string),
+                      row[5].get!(int),
+                      row[6].get!(User),
+                      row[7].get!(Comment[]),
+                      );
     }
     posts = makePosts(posts);
     string csrf_token = "";
@@ -361,9 +397,16 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
     select.setArgs(req.params["id"]);
     auto range = select.query();
     foreach (row; range) {
-        Post post;
-        row.toStruct(post);
-        posts ~= post;
+        posts ~= Post(
+                      row[0].get!(int),
+                      row[1].get!(int),
+                      row[2].get!(string),
+                      row[3].get!(DateTime),
+                      row[4].get!(string),
+                      row[5].get!(int),
+                      row[6].get!(User),
+                      row[7].get!(Comment[]),
+                      );
     }
     posts = makePosts(posts, true);  // assign `allComments` = true.
     if (!posts.length)
@@ -384,8 +427,14 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     select.setArgs(req.params["account_name"]);
     auto range = select.query();
     auto row = range.front;
-    User user;
-    row.toStruct(user);
+    auto user = User(
+                     row[0].get!(int),
+                     row[1].get!(string),
+                     row[2].get!(string),
+                     row[3].get!(byte).to!bool,
+                     row[4].get!(byte).to!bool,
+                     row[5].get!(DateTime)
+                     );
 
     if (user is User.init)
         return res.writeBody("", 404);
@@ -393,13 +442,20 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    select = conn.prepare("select id, user_id, text, mime, created_at from posts where user_id = ? order by created_at desc");
+    select = conn.prepare("select id, user_id, body, mime, created_at from posts where user_id = ? order by created_at desc");
     select.setArgs(user.id);
     range = select.query();
-    Post post;
     foreach (r; range) {
-        r.toStruct(post);
-        posts ~= post;
+        posts ~= Post(
+                      row[0].get!(int),
+                      row[1].get!(int),
+                      row[2].get!(string),
+                      row[3].get!(DateTime),
+                      row[4].get!(string),
+                      row[5].get!(int),
+                      row[6].get!(User),
+                      row[7].get!(Comment[]),
+                      );
     }
     posts = makePosts(posts);
 
@@ -407,17 +463,14 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     select.setArgs(user.id);
     range = select.query();
     row = range.front;
-    DummyCount dummy;
-    row.toStruct(dummy);
-    uint commentCount = dummy.count;
+    uint commentCount = row[0].get!(int);
 
     uint[] postIds;
     select = conn.prepare("select id from posts where user_id = ?");
     select.setArgs(user.id);
     range = select.query();
     foreach (r; range) {
-        r.toStruct(post);
-        postIds ~= post.id;
+        postIds ~= r[0].get!(int);
     }
     size_t postCount = postIds.length;
 
@@ -427,8 +480,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
         select.setArgs(postIds);
         range = select.query();
         row = range.front;
-        row.toStruct(dummy);
-        commentedCount = dummy.count;
+        commentedCount = row[0].get!(int);
     }
 
     auto me = getSessionUser(req, res);
