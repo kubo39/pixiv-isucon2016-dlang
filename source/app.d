@@ -34,8 +34,8 @@ struct Post
     int id;
     int user_id;
     string body_;
-    DateTime created_at;
     string mime;
+    DateTime created_at;
     long comment_count;
     User user;
     Comment[] comments;
@@ -258,14 +258,14 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
         Post[] posts;
         posts.reserve(POST_PER_PAGE);
 
-        auto range = conn.query("select id, user_id, body, created_at, mime from posts order by created_at desc limit 20");
+        auto range = conn.query("select id, user_id, body, mime, created_at from posts order by created_at desc limit 20");
         foreach (row; range) {
             posts ~= Post(
                           row[0].get!(int),
                           row[1].get!(int),
                           row[2].get!(string),
-                          row[3].get!(DateTime),
-                          row[4].get!(string),
+                          row[3].get!(string),
+                          row[4].get!(DateTime),
                           );
         }
         posts = makePosts(posts);
@@ -372,15 +372,15 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    auto range = conn.query("select id, user_id, body, created_at, mime from posts order by created_at desc limit 20");
+    auto range = conn.query("select id, user_id, body, mime, created_at from posts order by created_at desc limit 20");
     Post post;
     foreach (row; range) {
         posts ~= Post(
                       row[0].get!(int),
                       row[1].get!(int),
                       row[2].get!(string),
-                      row[3].get!(DateTime),
-                      row[4].get!(string),
+                      row[3].get!(string),
+                      row[4].get!(DateTime),
                       );
     }
     posts = makePosts(posts);
@@ -395,7 +395,7 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    auto select = conn.prepare("select * from posts where id = ?");
+    auto select = conn.prepare("select id, user_id, body, mime, created_at from posts where id = ?");  // Do not use `*` !
     select.setArgs(req.params["id"]);
     auto range = select.query();
     foreach (row; range) {
@@ -403,11 +403,8 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
                       row[0].get!(int),
                       row[1].get!(int),
                       row[2].get!(string),
-                      row[3].get!(DateTime),
-                      row[4].get!(string),
-                      row[5].get!(int),
-                      row[6].get!(User),
-                      row[7].get!(Comment[]),
+                      row[3].get!(string),
+                      row[4].get!(DateTime),
                       );
     }
     posts = makePosts(posts, true);  // assign `allComments` = true.
@@ -444,7 +441,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    select = conn.prepare("select id, user_id, body, created_at, mime from posts where user_id = ? order by created_at desc");
+    select = conn.prepare("select id, user_id, body, mime, created_at from posts where user_id = ? order by created_at desc");
     select.setArgs(user.id);
     range = select.query();
     foreach (r; range) {
@@ -452,8 +449,8 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
                       row[0].get!(int),
                       row[1].get!(int),
                       row[2].get!(string),
-                      row[3].get!(DateTime),
-                      row[4].get!(string),
+                      row[3].get!(string),
+                      row[4].get!(DateTime),
                       );
     }
     posts = makePosts(posts);
