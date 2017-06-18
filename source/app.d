@@ -67,7 +67,6 @@ void dbInitialize()
         "update users set del_flg = 1 where id % 50 = 0"
         ];
     foreach (q; sqls) {
-        writeln(q);
         conn.exec(q);
     }
 }
