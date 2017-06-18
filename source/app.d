@@ -422,60 +422,72 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
 void getUserList(HTTPServerRequest req, HTTPServerResponse res)
 {
     auto conn = client.lockConnection();
-    auto select = conn.prepare("select * from users where account_name = ? and del_flg = 0");
-    select.setArgs(req.params["account_name"]);
-    auto range = select.query();
-    auto row = range.front;
-    auto user = User(
-                     row[0].get!(int),
-                     row[1].get!(string),
-                     row[2].get!(string),
-                     row[3].get!(byte).to!bool,
-                     row[4].get!(byte).to!bool,
-                     row[5].get!(DateTime)
-                     );
 
+    User user;
+    {
+        auto select = conn.prepare("select * from users where account_name = ? and del_flg = 0");
+        select.setArgs(req.params["account_name"]);
+        auto range = select.query();
+        auto row = range.front;
+        user = User(
+                    row[0].get!(int),
+                    row[1].get!(string),
+                    row[2].get!(string),
+                    row[3].get!(byte).to!bool,
+                    row[4].get!(byte).to!bool,
+                    row[5].get!(DateTime)
+                    );
+    }
     if (user is User.init)
         return res.writeBody("", 404);
+
 
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    select = conn.prepare("select id, user_id, body, mime, created_at from posts where user_id = ? order by created_at desc");
-    select.setArgs(user.id);
-    range = select.query();
-    foreach (r; range) {
-        posts ~= Post(
-                      row[0].get!(int),
-                      row[1].get!(int),
-                      row[2].get!(string),
-                      row[3].get!(string),
-                      row[4].get!(DateTime),
-                      );
+    {
+        auto select = conn.prepare("select id, user_id, body, mime, created_at from posts where user_id = ? order by created_at desc");
+        select.setArgs(user.id);
+        auto range = select.query();
+        foreach (row; range) {
+            posts ~= Post(
+                          row[0].get!(int),
+                          row[1].get!(int),
+                          row[2].get!(string),
+                          row[3].get!(string),
+                          row[4].get!(DateTime),
+                          );
+        }
     }
+
     posts = makePosts(posts);
 
-    select = conn.prepare("select count(*) as count from comments where user_id = ?");
-    select.setArgs(user.id);
-    range = select.query();
-    row = range.front;
-    uint commentCount = row[0].get!(int);
+    int commentCount;
+    {
+        auto select = conn.prepare("select count(*) as count from comments where user_id = ?");
+        select.setArgs(user.id);
+        auto range = select.query();
+        auto row = range.front;
+        commentCount = row[0].get!(int);
+    }
 
     uint[] postIds;
-    select = conn.prepare("select id from posts where user_id = ?");
-    select.setArgs(user.id);
-    range = select.query();
-    foreach (r; range) {
-        postIds ~= r[0].get!(int);
+    {
+        auto select = conn.prepare("select id from posts where user_id = ?");
+        select.setArgs(user.id);
+        auto range = select.query();
+        foreach (row; range) {
+            postIds ~= row[0].get!(int);
+        }
     }
     size_t postCount = postIds.length;
 
-    uint commentedCount;
+    int commentedCount;
     if (postCount) {
-        select = conn.prepare("select count(*) as count from comments where post_id in ?");
+        auto select = conn.prepare("select count(*) as count from comments where post_id in ?");
         select.setArgs(postIds);
-        range = select.query();
-        row = range.front;
+        auto range = select.query();
+        auto row = range.front;
         commentedCount = row[0].get!(int);
     }
 
