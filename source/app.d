@@ -257,9 +257,6 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
                           row[2].get!(string),
                           row[3].get!(DateTime),
                           row[4].get!(string),
-                          // row[5].get!(int),
-                          // row[6].get!(User),
-                          // row[7].get!(Comment[]),
                           );
         }
         posts = makePosts(posts);
@@ -366,7 +363,7 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    auto range = conn.query("select id, user_id, body, mime, created_at from posts order by created_at desc limit 20");
+    auto range = conn.query("select id, user_id, body, created_at, mime from posts order by created_at desc limit 20");
     Post post;
     foreach (row; range) {
         posts ~= Post(
@@ -375,9 +372,6 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
                       row[2].get!(string),
                       row[3].get!(DateTime),
                       row[4].get!(string),
-                      row[5].get!(int),
-                      row[6].get!(User),
-                      row[7].get!(Comment[]),
                       );
     }
     posts = makePosts(posts);
@@ -441,7 +435,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    select = conn.prepare("select id, user_id, body, mime, created_at from posts where user_id = ? order by created_at desc");
+    select = conn.prepare("select id, user_id, body, created_at, mime from posts where user_id = ? order by created_at desc");
     select.setArgs(user.id);
     range = select.query();
     foreach (r; range) {
@@ -451,9 +445,6 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
                       row[2].get!(string),
                       row[3].get!(DateTime),
                       row[4].get!(string),
-                      row[5].get!(int),
-                      row[6].get!(User),
-                      row[7].get!(Comment[]),
                       );
     }
     posts = makePosts(posts);
