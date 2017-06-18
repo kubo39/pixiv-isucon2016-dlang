@@ -172,60 +172,69 @@ Post[] makePosts(Post[] results, bool allComments=false)
     posts.reserve(POST_PER_PAGE);
 
     foreach (post; results) {
-        auto select = conn.prepare("select count(*) as count from comments where post_id = ?");
-        select.setArgs(post.id);
-        auto range = select.query();
-        auto row = range.front;
-        post.comment_count = row[0].get!(long);
+        {
+            auto select = conn.prepare("select count(*) as count from comments where post_id = ?");
+            select.setArgs(post.id);
+            auto range = select.query();
+            auto row = range.front;
+            post.comment_count = row[0].get!(long);
+        }
 
         auto queryStmt = "select * from comments where post_id = ? order by created_at desc";
         if (!allComments)
             queryStmt ~= " limit 3";
 
         Comment[] comments;
-        select = conn.prepare(queryStmt);
-        select.setArgs(post.id);
-        range = select.query();
-        foreach (r; range) {
-            comments ~= Comment(
-                                r[0].get!(int),
-                                r[1].get!(int),
-                                r[2].get!(int),
-                                r[3].get!(string),
-                                r[4].get!(DateTime),
-                                r[5].get!(User)
-                                );
+
+        {
+            auto select = conn.prepare(queryStmt);
+            select.setArgs(post.id);
+            auto range = select.query();
+            foreach (row; range) {
+                comments ~= Comment(
+                                    row[0].get!(int),
+                                    row[1].get!(int),
+                                    row[2].get!(int),
+                                    row[3].get!(string),
+                                    row[4].get!(DateTime),
+                                    );
+            }
         }
 
-        foreach (c; comments) {
-            select = conn.prepare("select * from users where id = ?");
-            select.setArgs(c.user_id);
-            range = select.query();
-            row = range.front;
-            c.user = User(
-                          row[0].get!(int),
-                          row[1].get!(string),
-                          row[2].get!(string),
-                          row[3].get!(byte).to!bool,
-                          row[4].get!(byte).to!bool,
-                          row[5].get!(DateTime)
-                          );
+        {
+            foreach (c; comments) {
+                auto select = conn.prepare("select * from users where id = ?");
+                select.setArgs(c.user_id);
+                auto range = select.query();
+                auto row = range.front;
+                c.user = User(
+                              row[0].get!(int),
+                              row[1].get!(string),
+                              row[2].get!(string),
+                              row[3].get!(byte).to!bool,
+                              row[4].get!(byte).to!bool,
+                              row[5].get!(DateTime)
+                              );
+            }
         }
+
         reverse(comments);
         post.comments = comments;
 
-        select = conn.prepare("select * from users where id = ?");
-        select.setArgs(post.user_id);
-        range = select.query();
-        row = range.front;
-        post.user =User(
-                        row[0].get!(int),
-                        row[1].get!(string),
-                        row[2].get!(string),
-                        row[3].get!(byte).to!bool,
-                        row[4].get!(byte).to!bool,
-                        row[5].get!(DateTime)
-                        );
+        {
+            auto select = conn.prepare("select * from users where id = ?");
+            select.setArgs(post.user_id);
+            auto range = select.query();
+            auto row = range.front;
+            post.user =User(
+                            row[0].get!(int),
+                            row[1].get!(string),
+                            row[2].get!(string),
+                            row[3].get!(byte).to!bool,
+                            row[4].get!(byte).to!bool,
+                            row[5].get!(DateTime)
+                            );
+        }
 
         if (!post.user.del_flg)
             posts ~= post;
