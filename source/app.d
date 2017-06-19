@@ -490,13 +490,13 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
 
     posts = makePosts(posts);
 
-    int commentCount;
+    long commentCount;
     {
         auto select = conn.prepare("select count(*) as count from comments where user_id = ?");
         select.setArgs(user.id);
         auto range = select.query();
         auto row = range.front;
-        commentCount = row[0].get!(int);
+        commentCount = row[0].get!(long);
     }
 
     uint[] postIds;
@@ -510,13 +510,13 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     }
     size_t postCount = postIds.length;
 
-    int commentedCount;
+    long commentedCount;
     if (postCount) {
         auto select = conn.prepare("select count(*) as count from comments where post_id in ?");
         select.setArgs(postIds);
         auto range = select.query();
         auto row = range.front;
-        commentedCount = row[0].get!(int);
+        commentedCount = row[0].get!(long);
     }
 
     auto me = getSessionUser(req, res);
