@@ -5,6 +5,7 @@ import vibe.http.session;
 import vibe.templ.diet;
 import vibe.http.fileserver;
 import vibe.core.file;
+import vibe.inet.mimetypes;
 
 import mysql;
 
@@ -293,7 +294,13 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
         return res.redirect("/");
     }
 
-    Path path = pf.tempPath; //filename;
+    Path path = pf.tempPath;
+    auto mime = path.toString.getMimeTypeForFile;
+    if (! ["image/jpeg", "image/png", "image/gif"].canFind(mime)) {
+        stderr.writeln("投稿できる画像形式はjpgとpngとgifだけです");
+        return res.redirect("/");
+    }
+
     auto buffer = new ubyte[UPDATE_LIMIT + 1];
 
     path.readFile(buffer, UPDATE_LIMIT + 1);
@@ -309,7 +316,6 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
     ubyte[] imgdata = new ubyte[filesz];
     tempf.write(imgdata);
 
-    auto mime = "";
     auto conn = client.lockConnection();
     auto insert = conn.prepare("insert into posts (user_id, mime, imgdata, body) values (?, ?, ?, ?)");
     insert.setArgs(me.id, mime, imgdata, req.form["body"]);
