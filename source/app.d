@@ -294,8 +294,8 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
         return res.redirect("/");
     }
 
-    Path path = pf.tempPath;
-    auto mime = path.toString.getMimeTypeForFile;
+    auto mime = pf.filename.toString.getMimeTypeForFile;
+
     if (! ["image/jpeg", "image/png", "image/gif"].canFind(mime)) {
         stderr.writeln("投稿できる画像形式はjpgとpngとgifだけです");
         return res.redirect("/");
@@ -303,7 +303,7 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
 
     auto buffer = new ubyte[UPDATE_LIMIT + 1];
 
-    path.readFile(buffer, UPDATE_LIMIT + 1);
+    pf.tempPath.readFile(buffer, UPDATE_LIMIT + 1);
 
     FileStream tempf = createTempFile("xxx");
     tempf.path.writeFile(buffer);
@@ -531,6 +531,28 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     return res.render!("user.dt", user, posts, postCount, commentCount, commentedCount, csrf_token);
 }
 
+
+// void getImage(HTTPServerRequest req, HTTPServerResponse res)
+// {
+//     auto id = req.params["id"].to!int;
+//     if (id == 0) {
+//         return res.writeBody("");
+//     }
+//     auto conn = client.lockConnection();
+//     auto select = conn.prepare("select * from posts where id = ?");
+//     select.setArgs(id.to!string);
+//     auto range = select.query();
+//     auto row = range.front;
+//     auto mime = row[3].get!(string);
+//     if (req.params["ext"] == "jpg" && mime == "image/jpg"  ||
+//         req.params["ext"] == "png" && mime == "image/png" ||
+//         req.params["ext"] == "gif" && mime == "image/gif") {
+//         res.writeBody(cast(const) row[2].get!(ubyte[]), mime);
+//     }
+//     enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
+// }
+
+
 // void getInitialize(HTTPServerRequest req, HTTPServerResponse res)
 // {
 //     dbInitialize();
@@ -554,6 +576,7 @@ shared static this()
     router.get("/posts", &getPosts);
     router.get("/posts/:id", &getPostsId);
     router.get("/:account_name", &getUserList);
+    // router.get("/image/:id.:ext", &getImage);
 
     router.get("*", serveStaticFiles("../public/"));
 
