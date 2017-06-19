@@ -4,6 +4,7 @@ import vibe.http.router;
 import vibe.http.session;
 import vibe.templ.diet;
 import vibe.http.fileserver;
+import vibe.core.file;
 
 import mysql;
 
@@ -15,6 +16,7 @@ import std.stdio;
 import std.uuid;
 import std.variant;
 
+immutable UPDATE_LIMIT = 10 * 1024 * 1024;  // 10mb
 immutable POST_PER_PAGE = 20;
 
 MySQLPool client;
@@ -285,8 +287,35 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
         enforceHTTP(false, HTTPStatus.unprocessableEntity, httpStatusText(HTTPStatus.unprocessableEntity));
     }
 
-    
-    return res.redirect("/");
+    auto pf = "file" in req.files;
+    if (pf is null) {
+        stderr.writeln("画像が必要です");
+        return res.redirect("/");
+    }
+
+    Path path = pf.tempPath; //filename;
+    auto buffer = new ubyte[UPDATE_LIMIT + 1];
+
+    path.readFile(buffer, UPDATE_LIMIT + 1);
+
+    FileStream tempf = createTempFile("xxx");
+    tempf.path.writeFile(buffer);
+    size_t  filesz = min(tempf.tell(), UPDATE_LIMIT);
+    if (filesz > UPDATE_LIMIT) {
+        stderr.writeln("ファイルが大きすぎます");
+        return res.redirect("/");
+    }
+    tempf.seek(0);
+    ubyte[] imgdata = new ubyte[filesz];
+    tempf.write(imgdata);
+
+    auto mime = "";
+    auto conn = client.lockConnection();
+    auto insert = conn.prepare("insert into posts (user_id, mime, imgdata, body) values (?, ?, ?, ?)");
+    insert.setArgs(me.id, mime, imgdata, req.form["body"]);
+    insert.exec();
+    auto pid = conn.lastInsertID;
+    return res.redirect("/posts/" ~ pid.to!string);
 }
 
 
