@@ -278,14 +278,14 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
 {
     auto me = getSessionUser(req, res);
     if (me is User.init) {
-        stderr.writeln("postIndex() no login.");
         return res.redirect("/login");
     }
 
     if (req.form["csrf_token"] != req.session.get("csrf_token", "")) {
-        stderr.writeln("トークンが違います");
         enforceHTTP(false, HTTPStatus.unprocessableEntity, httpStatusText(HTTPStatus.unprocessableEntity));
     }
+
+    
     return res.redirect("/");
 }
 
