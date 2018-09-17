@@ -3,7 +3,14 @@ div.isu-post(id="pid_#{ post.id }", data-created-at="#{  post.created_at }")
         a.isu-post-permalink(href="/posts/#{ post.id }")
             time.timeago(datetime="#{ post.created_at }")
     div.isu-post-image
-        img.isu-image(src="image_url")
+        - if (post.mime == "image/jpeg")
+            img.isu-image(src="/image/#{ post.id }.jpg")
+        - else if (post.mime == "image/png")
+            img.isu-image(src="/image/#{ post.id }.png")
+        - else if (post.mime == "image/gif")
+            img.isu-image(src="/image/#{ post.id }.gif")
+        - else
+            img.isu-image(src="/image/#{ post.id }")
     div.isu-post-text
         post.nl2br_body
     div.isu-post-comment

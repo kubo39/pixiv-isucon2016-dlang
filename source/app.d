@@ -147,19 +147,6 @@ unittest
     assert(validateUser("kubo39", "kubo39"));
 }
 
-string imageURL(Post post)
-{
-    import std.format : format;
-    string ext;
-    auto mime = post.mime;
-    if (mime == "image/jpeg")
-        ext = ".jpg";
-    else if (mime == "image/png")
-        ext = ".png";
-    else if (mime == "image/gif")
-        ext = ".gif";
-    return format("/image/%d%s", post.id, ext);
-}
 
 Post[] makePosts(Post[] results, bool allComments=false)
 {
@@ -301,7 +288,8 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
     tempf.write(imgdata);
 
     auto conn = client.lockConnection();
-    conn.exec("insert into posts (user_id, mime, imgdata, body) values (?, ?, ?, ?)", me.id, mime, imgdata, req.form["body"]);
+    conn.exec("insert into posts (user_id, mime, imgdata, body) values (?, ?, ?, ?)",
+              me.id, mime, imgdata, req.form["body"]);
     auto pid = conn.lastInsertID;
     return res.redirect("/posts/" ~ pid.to!string);
 }
@@ -501,25 +489,29 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
 }
 
 
-// void getImage(HTTPServerRequest req, HTTPServerResponse res)
-// {
-//     auto id = req.params["id"].to!int;
-//     if (id == 0) {
-//         return res.writeBody("");
-//     }
-//     auto conn = client.lockConnection();
-//     auto select = conn.prepare("select * from posts where id = ?");
-//     select.setArgs(id.to!string);
-//     auto range = select.query();
-//     auto row = range.front;
-//     auto mime = row[3].get!(string);
-//     if (req.params["ext"] == "jpg" && mime == "image/jpg"  ||
-//         req.params["ext"] == "png" && mime == "image/png" ||
-//         req.params["ext"] == "gif" && mime == "image/gif") {
-//         res.writeBody(cast(const) row[2].get!(ubyte[]), mime);
-//     }
-//     enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
-// }
+void getImage(HTTPServerRequest req, HTTPServerResponse res)
+{
+    import std.algorithm : findSplit;
+    auto idAndExt = req.params["ext"].findSplit(".");
+    auto id = idAndExt[0].to!int;
+    auto ext = idAndExt[2];
+    if (id == 0)
+    {
+        enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
+    }
+    auto conn = client.lockConnection();
+    auto range = conn.query("select mime, imgdata from posts where id = ?", id);
+    auto row = range.front;
+    auto mime = row[0].get!(string);
+    if (ext == "jpg" && mime == "image/jpeg"  ||
+        ext == "png" && mime == "image/png" ||
+        ext == "gif" && mime == "image/gif")
+    {
+        res.headers["Content-Type"] = mime;
+        return res.writeBody(cast(const) row[1].get!(ubyte[]));
+    }
+    enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
+}
 
 
 // void getInitialize(HTTPServerRequest req, HTTPServerResponse res)
@@ -545,7 +537,7 @@ shared static this()
     router.get("/posts", &getPosts);
     router.get("/posts/:id", &getPostsId);
     router.get("/:account_name", &getUserList);
-    // router.get("/image/:id.:ext", &getImage);
+    router.get("/image/:ext", &getImage);
 
     router.get("*", serveStaticFiles("../public/"));
 
