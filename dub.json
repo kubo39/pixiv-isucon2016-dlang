@@ -1,11 +1,11 @@
 {
     "name": "pixiv-isucon-dlang",
-    "authors": ["kubo39"],
+    "authors": ["Hiroki Noda"],
     "targetName": "isuapp",
     "targetType": "executable",
     "dependencies": {
-        "vibe-d": "0.7.31",
-        "mysql-native": "1.1.0"
+        "vibe-d": "0.8.4",
+        "mysql-native": "2.2.2"
     },
     "buildType": [
         "debugInfo",
