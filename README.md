@@ -20,8 +20,8 @@ $ dub run
 
 ```console
 $ dmd --version
-DMD64 D Compiler v2.072.0
-Copyright (c) 1999-2016 by Digital Mars written by Walter Bright
+DMD64 D Compiler v2.082.0
+Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved written by Walter Bright
 $ dub --version
-DUB version 1.1.0, built on Nov  6 2016
+DUB version 1.11.0, built on Sep  1 2018
 ```
