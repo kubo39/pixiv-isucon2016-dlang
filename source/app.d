@@ -277,7 +277,7 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
 
     FileStream tempf = createTempFile("xxx");
     tempf.path.writeFile(buffer);
-    size_t  filesz = min(tempf.tell(), UPDATE_LIMIT);
+    size_t filesz = min(tempf.tell(), UPDATE_LIMIT);
     if (filesz > UPDATE_LIMIT)
     {
         stderr.writeln("ファイルが大きすぎます");
