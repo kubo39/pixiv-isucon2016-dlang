@@ -9,6 +9,7 @@ import vibe.inet.mimetypes;
 import mysql;
 
 import std.algorithm;
+import std.array : array;
 import std.conv : to;
 import std.datetime;
 import std.regex;
@@ -96,9 +97,8 @@ string calculatePasshash(string accountName, string password)
 User tryLogin(string accountName, string password)
 {
     auto conn = client.lockConnection();
-    ResultRange range = conn.query("select * from users where account_name = ? and del_flg = 0",
-                                   accountName);
-    Row row = range.front;
+    auto row = conn.queryRow("select * from users where account_name = ? and del_flg = 0",
+                             accountName);
     auto user = User(
         row[0].get!(int),
         row[1].get!(string),
@@ -119,8 +119,7 @@ User getSessionUser(HTTPServerRequest req, HTTPServerResponse res)
     {
         auto conn = client.lockConnection();
         auto id = req.session.get("user", "id");
-        auto range = conn.query("select * from users where id = ?", id);
-        auto row = range.front;
+        auto row = conn.queryRow("select * from users where id = ?", id);
         return User(
             row[0].get!(int),
             row[1].get!(string),
@@ -157,8 +156,7 @@ Post[] makePosts(Post[] results, bool allComments=false)
     foreach (post; results)
     {
         {
-            auto range = conn.query("select count(*) as count from comments where post_id = ?", post.id);
-            auto row = range.front;
+            auto row = conn.queryRow("select count(*) as count from comments where post_id = ?", post.id);
             post.comment_count = row[0].get!(long);
         }
 
@@ -168,8 +166,8 @@ Post[] makePosts(Post[] results, bool allComments=false)
 
         Comment[] comments;
         {
-            auto range = conn.query(queryStmt, post.id);
-            foreach (row; range)
+            auto rows = conn.query(queryStmt, post.id).array;
+            foreach (row; rows)
             {
                 comments ~= Comment(
                     row[0].get!(int),
@@ -183,8 +181,7 @@ Post[] makePosts(Post[] results, bool allComments=false)
         {
             foreach (c; comments)
             {
-                auto range = conn.query("select * from users where id = ?", c.user_id);
-                auto row = range.front;
+                auto row = conn.queryRow("select * from users where id = ?", c.user_id);
                 c.user = User(
                     row[0].get!(int),
                     row[1].get!(string),
@@ -197,8 +194,7 @@ Post[] makePosts(Post[] results, bool allComments=false)
         reverse(comments);
         post.comments = comments;
         {
-            auto range = conn.query("select * from users where id = ?", post.user_id);
-            auto row = range.front;
+            auto row = conn.queryRow("select * from users where id = ?", post.user_id);
             post.user =User(
                 row[0].get!(int),
                 row[1].get!(string),
@@ -231,8 +227,8 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
         Post[] posts;
         posts.reserve(POST_PER_PAGE);
 
-        auto range = conn.query("select id, user_id, body, mime, created_at from posts order by created_at desc limit 20");
-        foreach (row; range)
+        auto rows = conn.query("select id, user_id, body, mime, created_at from posts order by created_at desc limit 20").array;
+        foreach (row; rows)
         {
             posts ~= Post(
                 row[0].get!(int),
@@ -342,8 +338,8 @@ void postRegister(HTTPServerRequest req, HTTPServerResponse res)
         return res.redirect("/register");
 
     auto conn = client.lockConnection();
-    auto row = conn.query("select 1 from users where account_name = ?", accountName);
-    if (row.count != 0)
+    auto rows = conn.query("select 1 from users where account_name = ?", accountName).array;
+    if (rows.length != 0)
     {
         stderr.writeln("アカウント名がすでに使われています");
         return res.redirect("/register");
@@ -375,8 +371,8 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    auto range = conn.query("select id, user_id, body, mime, created_at from posts order by created_at desc limit 20");
-    foreach (row; range)
+    auto rows = conn.query("select id, user_id, body, mime, created_at from posts order by created_at desc limit 20").array;
+    foreach (row; rows)
     {
         posts ~= Post(
             row[0].get!(int),
@@ -397,9 +393,9 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    auto range = conn.query("select id, user_id, body, mime, created_at from posts where id = ?",
-                            req.params["id"]);  // Do not use `*` !
-    foreach (row; range)
+    auto rows = conn.query("select id, user_id, body, mime, created_at from posts where id = ?",
+                           req.params["id"]).array;  // Do not use `*` !
+    foreach (row; rows)
     {
         posts ~= Post(
             row[0].get!(int),
@@ -426,9 +422,8 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
 
     User user;
     {
-        auto range = conn.query("select * from users where account_name = ? and del_flg = 0",
-                                req.params["account_name"]);
-        auto row = range.front;
+        auto row = conn.queryRow("select * from users where account_name = ? and del_flg = 0",
+                                 req.params["account_name"]);
         user = User(
             row[0].get!(int),
             row[1].get!(string),
@@ -443,9 +438,9 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
     {
-        auto range = conn.query("select id, user_id, body, mime, created_at from posts where user_id = ? order by created_at desc",
-                                 user.id);
-        foreach (row; range)
+        auto rows = conn.query("select id, user_id, body, mime, created_at from posts where user_id = ? order by created_at desc",
+                               user.id).array;
+        foreach (row; rows)
         {
             posts ~= Post(
                 row[0].get!(int),
@@ -460,15 +455,14 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
 
     long commentCount;
     {
-        auto range = conn.query("select count(*) as count from comments where user_id = ?", user.id);
-        auto row = range.front;
+        auto row = conn.queryRow("select count(*) as count from comments where user_id = ?", user.id);
         commentCount = row[0].get!(long);
     }
 
     uint[] postIds;
     {
-        auto range = conn.query("select id from posts where user_id = ?", user.id);
-        foreach (row; range)
+        auto rows = conn.query("select id from posts where user_id = ?", user.id).array;
+        foreach (row; rows)
         {
             postIds ~= row[0].get!(int);
         }
@@ -478,8 +472,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     long commentedCount;
     if (postCount)
     {
-        auto range = conn.query("select count(*) as count from comments where post_id in ?", postIds);
-        auto row = range.front;
+        auto row = conn.queryRow("select count(*) as count from comments where post_id in ?", postIds);
         commentedCount = row[0].get!(long);
     }
     auto me = getSessionUser(req, res);
@@ -500,8 +493,7 @@ void getImage(HTTPServerRequest req, HTTPServerResponse res)
         enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
     }
     auto conn = client.lockConnection();
-    auto range = conn.query("select mime, imgdata from posts where id = ?", id);
-    auto row = range.front;
+    auto row = conn.queryRow("select mime, imgdata from posts where id = ?", id);
     auto mime = row[0].get!(string);
     if (ext == "jpg" && mime == "image/jpeg"  ||
         ext == "png" && mime == "image/png" ||
