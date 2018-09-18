@@ -424,6 +424,8 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     {
         auto row = conn.queryRow("select * from users where account_name = ? and del_flg = 0",
                                  req.params["account_name"]);
+        if (row.isNull)
+            enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
         user = User(
             row[0].get!(int),
             row[1].get!(string),
@@ -433,7 +435,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
             row[5].get!(DateTime));
     }
     if (user is User.init)
-        return res.writeBody("", 404);
+        enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
 
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
@@ -463,9 +465,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     {
         auto rows = conn.query("select id from posts where user_id = ?", user.id).array;
         foreach (row; rows)
-        {
             postIds ~= row[0].get!(int);
-        }
     }
     size_t postCount = postIds.length;
 
