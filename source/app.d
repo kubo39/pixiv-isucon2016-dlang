@@ -12,8 +12,11 @@ import std.algorithm;
 import std.array : array;
 import std.conv : to;
 import std.datetime;
+import std.format : format;
+import std.process;
 import std.regex;
 import std.stdio;
+import std.string;
 import std.uuid;
 import std.variant;
 
@@ -75,9 +78,6 @@ void dbInitialize()
 
 string digest(string src)
 {
-    import std.algorithm : findSplitAfter;
-    import std.process : executeShell, escapeShellCommand;
-    import std.string : strip;
     return executeShell(`echo "` ~ escapeShellCommand(src) ~ `"| openssl dgst -sha512`)
         .output
         .findSplitAfter("= ")[1]  // opensslのバージョンによっては (stdin)= というのがつくので取る
@@ -556,7 +556,14 @@ void getAdminBanned(HTTPServerRequest req, HTTPServerResponse res)
 
 void main()
 {
-    client = new MySQLPool("host=localhost;port=3306;user=root;pwd=password;db=isuconp");
+    string host     = environment.get("ISUCONP_DB_HOST", "localhost");
+    string port     = environment.get("ISUCONP_DB_PORT", "3306");
+    string user     = environment.get("ISUCONP_DB_USER", "root");
+    string pwd      = environment.get("ISUCONP_DB_PASSWORD", "password");
+    string dbname   = environment.get("ISUCONP_DB_NAME", "isuconp");
+    auto dsn = format("host=%s;port=%s;user=%s;pwd=%s;db=%s",
+                      host, port, user, pwd, dbname);
+    client = new MySQLPool(dsn);
 
     auto router = new URLRouter;
     router.get("/", &getIndex);
