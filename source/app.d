@@ -506,6 +506,22 @@ void getImage(HTTPServerRequest req, HTTPServerResponse res)
 }
 
 
+void postComment(HTTPServerRequest req, HTTPServerResponse res)
+{
+    auto me = getSessionUser(req, res);
+    if (me is User.init)
+        return res.redirect("/login");
+    if (req.form["csrf_token"] != req.session.get("csrf_token", ""))
+        enforceHTTP(false, HTTPStatus.unprocessableEntity, httpStatusText(HTTPStatus.unprocessableEntity));
+
+    auto postId = req.form["post_id"].to!uint;
+
+    auto conn = client.lockConnection();
+    conn.exec("insert into `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)",
+              postId, me.id, req.form["comment"]);
+    return res.redirect("/posts/" ~ postId.to!string);
+}
+
 // void getInitialize(HTTPServerRequest req, HTTPServerResponse res)
 // {
 //     dbInitialize();
@@ -530,6 +546,7 @@ shared static this()
     router.get("/posts/:id", &getPostsId);
     router.get("/:account_name", &getUserList);
     router.get("/image/:ext", &getImage);
+    router.post("/comment", &postComment);
 
     router.get("*", serveStaticFiles("../public/"));
 
