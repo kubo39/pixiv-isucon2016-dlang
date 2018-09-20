@@ -1,8 +1,8 @@
-import vibe.appmain;
 import vibe.http.server;
 import vibe.http.router;
 import vibe.http.session;
 import vibe.http.fileserver;
+import vibe.core.core;
 import vibe.core.file;
 import vibe.inet.mimetypes;
 
@@ -554,9 +554,7 @@ void getAdminBanned(HTTPServerRequest req, HTTPServerResponse res)
 // }
 
 
-version(unittest) {}
-else
-shared static this()
+void main()
 {
     client = new MySQLPool("host=localhost;port=3306;user=root;pwd=password;db=isuconp");
 
@@ -586,4 +584,5 @@ shared static this()
     settings.sessionStore = new MemorySessionStore;
 
     listenHTTP(settings, router);
+    runApplication();
 }

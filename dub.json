@@ -14,5 +14,5 @@
         "releaseMode",
         "inline"
     ],
-    "versions": ["VibeDefaultMain", "VibeNoSSL"]
+    "versions": ["VibeNoSSL"]
 }
