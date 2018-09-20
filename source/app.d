@@ -522,6 +522,32 @@ void postComment(HTTPServerRequest req, HTTPServerResponse res)
     return res.redirect("/posts/" ~ postId.to!string);
 }
 
+
+void getAdminBanned(HTTPServerRequest req, HTTPServerResponse res)
+{
+    auto me = getSessionUser(req, res);
+    if (me is User.init)
+        return res.redirect("/");
+    if (!me.authority)
+    {
+    }
+    User[] users;
+    auto conn = client.lockConnection();
+    auto rows = conn.query("select * from `users` where `authority` = 0 and `del_flg` = 0 order by `created_at` desc").array;
+    foreach (row; rows)
+    {
+        users ~= User(
+            row[0].get!(int),
+            row[1].get!(string),
+            row[2].get!(string),
+            row[3].get!(byte).to!bool,
+            row[4].get!(byte).to!bool,
+            row[5].get!(DateTime));
+    }
+    string csrf_token = "";
+    res.render!("banned.dt", users, csrf_token);
+}
+
 // void getInitialize(HTTPServerRequest req, HTTPServerResponse res)
 // {
 //     dbInitialize();
@@ -547,6 +573,7 @@ shared static this()
     router.get("/:account_name", &getUserList);
     router.get("/image/:ext", &getImage);
     router.post("/comment", &postComment);
+    router.get("/admin/banned", &getAdminBanned);
 
     router.get("*", serveStaticFiles("../public/"));
 
