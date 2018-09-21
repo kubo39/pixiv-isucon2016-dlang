@@ -97,7 +97,7 @@ string calculatePasshash(string accountName, string password)
 User tryLogin(string accountName, string password)
 {
     auto conn = client.lockConnection();
-    auto row = conn.queryRow("select * from `users` where `account_nameP = ? and `del_flg` = 0",
+    auto row = conn.queryRow("select * from `users` where `account_name` = ? and `del_flg` = 0",
                              accountName);
     auto user = User(
         row[0].get!(int),
