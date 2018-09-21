@@ -69,8 +69,8 @@ void dbInitialize()
         "delete from `users` where `id` > 1000",
         "delete from `posts` where `id` > 10000",
         "delete from `comments` where `id` > 10000",
-        "update users set `del_flg` = 0",
-        "update users set `del_flg` = 1 where `id` % 50 = 0"
+        "update `users` set `del_flg` = 0",
+        "update `users` set `del_flg` = 1 where `id` % 50 = 0"
         ];
     foreach (q; sqls)
         conn.exec(q);
