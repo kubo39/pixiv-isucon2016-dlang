@@ -66,11 +66,11 @@ void dbInitialize()
 {
     auto conn = client.lockConnection();
     auto sqls = [
-        "delete from users where id > 1000",
-        "delete from posts where id > 10000",
-        "delete from comments where id > 10000",
-        "update users set del_flg = 0",
-        "update users set del_flg = 1 where id % 50 = 0"
+        "delete from `users` where `id` > 1000",
+        "delete from `posts` where `id` > 10000",
+        "delete from `comments` where `id` > 10000",
+        "update users set `del_flg` = 0",
+        "update users set `del_flg` = 1 where `id` % 50 = 0"
         ];
     foreach (q; sqls)
         conn.exec(q);
@@ -97,7 +97,7 @@ string calculatePasshash(string accountName, string password)
 User tryLogin(string accountName, string password)
 {
     auto conn = client.lockConnection();
-    auto row = conn.queryRow("select * from users where account_name = ? and del_flg = 0",
+    auto row = conn.queryRow("select * from `users` where `account_nameP = ? and `del_flg` = 0",
                              accountName);
     auto user = User(
         row[0].get!(int),
@@ -119,7 +119,7 @@ User getSessionUser(HTTPServerRequest req, HTTPServerResponse res)
     {
         auto conn = client.lockConnection();
         auto id = req.session.get("user", "id");
-        auto row = conn.queryRow("select * from users where id = ?", id);
+        auto row = conn.queryRow("select * from `users` where `id` = ?", id);
         return User(
             row[0].get!(int),
             row[1].get!(string),
@@ -156,11 +156,11 @@ Post[] makePosts(Post[] results, bool allComments=false)
     foreach (post; results)
     {
         {
-            auto row = conn.queryRow("select count(*) as count from comments where post_id = ?", post.id);
+            auto row = conn.queryRow("select count(*) as count from `comments` where `post_id` = ?", post.id);
             post.comment_count = row[0].get!(long);
         }
 
-        auto queryStmt = "select * from comments where post_id = ? order by created_at desc";
+        auto queryStmt = "select * from `comments` where `post_id` = ? order by `created_at` desc";
         if (!allComments)
             queryStmt ~= " limit 3";
 
@@ -181,7 +181,7 @@ Post[] makePosts(Post[] results, bool allComments=false)
         {
             foreach (c; comments)
             {
-                auto row = conn.queryRow("select * from users where id = ?", c.user_id);
+                auto row = conn.queryRow("select * from `users` where `id` = ?", c.user_id);
                 c.user = User(
                     row[0].get!(int),
                     row[1].get!(string),
@@ -194,7 +194,7 @@ Post[] makePosts(Post[] results, bool allComments=false)
         reverse(comments);
         post.comments = comments;
         {
-            auto row = conn.queryRow("select * from users where id = ?", post.user_id);
+            auto row = conn.queryRow("select * from `users` where `id` = ?", post.user_id);
             post.user =User(
                 row[0].get!(int),
                 row[1].get!(string),
@@ -227,7 +227,7 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
         Post[] posts;
         posts.reserve(POST_PER_PAGE);
 
-        auto rows = conn.query("select id, user_id, body, mime, created_at from posts order by created_at desc limit 20").array;
+        auto rows = conn.query("select `id`, `user_id`, `body`, `mime`, `created_at` from `posts` order by `created_at` desc limit 20").array;
         foreach (row; rows)
         {
             posts ~= Post(
@@ -284,7 +284,7 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
     tempf.write(imgdata);
 
     auto conn = client.lockConnection();
-    conn.exec("insert into posts (user_id, mime, imgdata, body) values (?, ?, ?, ?)",
+    conn.exec("insert into `posts` (`user_id`, `mime`, `imgdata`, `body`) values (?, ?, ?, ?)",
               me.id, mime, imgdata, req.form["body"]);
     auto pid = conn.lastInsertID;
     return res.redirect("/posts/" ~ pid.to!string);
@@ -338,14 +338,14 @@ void postRegister(HTTPServerRequest req, HTTPServerResponse res)
         return res.redirect("/register");
 
     auto conn = client.lockConnection();
-    auto rows = conn.query("select 1 from users where account_name = ?", accountName).array;
+    auto rows = conn.query("select 1 from `users` where `account_name` = ?", accountName).array;
     if (rows.length != 0)
     {
         stderr.writeln("アカウント名がすでに使われています");
         return res.redirect("/register");
     }
 
-    conn.exec("insert into users (account_name, passhash) values (?, ?)",
+    conn.exec("insert into `users` (`account_name`, `passhash`) values (?, ?)",
               accountName, calculatePasshash(accountName, password));
 
     if (!req.session)
@@ -371,7 +371,7 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    auto rows = conn.query("select id, user_id, body, mime, created_at from posts order by created_at desc limit 20").array;
+    auto rows = conn.query("select `id`, `user_id`, `body`, `mime`, `created_at` from `posts` order by `created_at` desc limit 20").array;
     foreach (row; rows)
     {
         posts ~= Post(
@@ -393,7 +393,7 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
-    auto rows = conn.query("select id, user_id, body, mime, created_at from posts where id = ?",
+    auto rows = conn.query("select `id`, `user_id`, `body`, `mime`, `created_at` from `posts` where `id` = ?",
                            req.params["id"]).array;  // Do not use `*` !
     foreach (row; rows)
     {
@@ -422,7 +422,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
 
     User user;
     {
-        auto row = conn.queryRow("select * from users where account_name = ? and del_flg = 0",
+        auto row = conn.queryRow("select * from `users` where `account_name` = ? and `del_flg` = 0",
                                  req.params["account_name"]);
         if (row.isNull)
             enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
@@ -440,7 +440,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
     {
-        auto rows = conn.query("select id, user_id, body, mime, created_at from posts where user_id = ? order by created_at desc",
+        auto rows = conn.query("select `id`, `user_id`, `body`, `mime`, `created_at` from `posts` where `user_id` = ? order by `created_at` desc",
                                user.id).array;
         foreach (row; rows)
         {
@@ -457,13 +457,13 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
 
     long commentCount;
     {
-        auto row = conn.queryRow("select count(*) as count from comments where user_id = ?", user.id);
+        auto row = conn.queryRow("select count(*) as count from `comments` where `user_id` = ?", user.id);
         commentCount = row[0].get!(long);
     }
 
     uint[] postIds;
     {
-        auto rows = conn.query("select id from posts where user_id = ?", user.id).array;
+        auto rows = conn.query("select `id` from `posts` where `user_id` = ?", user.id).array;
         foreach (row; rows)
             postIds ~= row[0].get!(int);
     }
@@ -472,7 +472,7 @@ void getUserList(HTTPServerRequest req, HTTPServerResponse res)
     long commentedCount;
     if (postCount)
     {
-        auto row = conn.queryRow("select count(*) as count from comments where post_id in ?", postIds);
+        auto row = conn.queryRow("select count(*) as count from `comments` where `post_id` in ?", postIds);
         commentedCount = row[0].get!(long);
     }
     auto me = getSessionUser(req, res);
@@ -493,7 +493,7 @@ void getImage(HTTPServerRequest req, HTTPServerResponse res)
         enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
     }
     auto conn = client.lockConnection();
-    auto row = conn.queryRow("select mime, imgdata from posts where id = ?", id);
+    auto row = conn.queryRow("select `mime`, `imgdata` from `posts` where `id` = ?", id);
     auto mime = row[0].get!(string);
     if (ext == "jpg" && mime == "image/jpeg"  ||
         ext == "png" && mime == "image/png" ||
