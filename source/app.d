@@ -530,6 +530,7 @@ void getAdminBanned(HTTPServerRequest req, HTTPServerResponse res)
         return res.redirect("/");
     if (!me.authority)
     {
+        enforceHTTP(false, HTTPStatus.forbidden, httpStatusText(HTTPStatus.forbidden));
     }
     User[] users;
     auto conn = client.lockConnection();
