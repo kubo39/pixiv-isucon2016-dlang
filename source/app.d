@@ -23,7 +23,7 @@ import std.variant;
 immutable UPDATE_LIMIT = 10 * 1024 * 1024;  // 10mb
 immutable POST_PER_PAGE = 20;
 
-MySQLPool client;
+MySQLPool pool;
 
 struct User
 {
@@ -64,7 +64,7 @@ struct Comment
 
 void dbInitialize()
 {
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
     auto sqls = [
         "delete from `users` where `id` > 1000",
         "delete from `posts` where `id` > 10000",
@@ -96,7 +96,7 @@ string calculatePasshash(string accountName, string password)
 
 User tryLogin(string accountName, string password)
 {
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
     auto row = conn.queryRow("select * from `users` where `account_name` = ? and `del_flg` = 0",
                              accountName);
     auto user = User(
@@ -117,7 +117,7 @@ User getSessionUser(HTTPServerRequest req, HTTPServerResponse res)
         return User.init;
     if (req.session.isKeySet("user"))
     {
-        auto conn = client.lockConnection();
+        auto conn = pool.lockConnection();
         auto id = req.session.get("user", "id");
         auto row = conn.queryRow("select * from `users` where `id` = ?", id);
         return User(
@@ -149,7 +149,7 @@ unittest
 
 Post[] makePosts(Post[] results, bool allComments=false)
 {
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
@@ -222,7 +222,7 @@ void getIndex(HTTPServerRequest req, HTTPServerResponse res)
 {
     if (getSessionUser(req, res) !is User.init)
     {
-        auto conn = client.lockConnection();
+        auto conn = pool.lockConnection();
         auto csrf_token = req.session.get("csrf_token", "");
         Post[] posts;
         posts.reserve(POST_PER_PAGE);
@@ -283,7 +283,7 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
     ubyte[] imgdata = new ubyte[filesz];
     tempf.write(imgdata);
 
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
     conn.exec("insert into `posts` (`user_id`, `mime`, `imgdata`, `body`) values (?, ?, ?, ?)",
               me.id, mime, imgdata, req.form["body"]);
     auto pid = conn.lastInsertID;
@@ -337,7 +337,7 @@ void postRegister(HTTPServerRequest req, HTTPServerResponse res)
     if (!validateUser(accountName, password))
         return res.redirect("/register");
 
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
     auto rows = conn.query("select 1 from `users` where `account_name` = ?", accountName).array;
     if (rows.length != 0)
     {
@@ -365,7 +365,7 @@ void getLogout(HTTPServerRequest req, HTTPServerResponse res)
 
 void getPosts(HTTPServerRequest req, HTTPServerResponse res)
 {
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
     // auto maxCreatedAt = req.form["max_created_at"];
 
     Post[] posts;
@@ -389,7 +389,7 @@ void getPosts(HTTPServerRequest req, HTTPServerResponse res)
 
 void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
 {
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
     Post[] posts;
     posts.reserve(POST_PER_PAGE);
 
@@ -418,7 +418,7 @@ void getPostsId(HTTPServerRequest req, HTTPServerResponse res)
 
 void getUserList(HTTPServerRequest req, HTTPServerResponse res)
 {
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
 
     User user;
     {
@@ -492,7 +492,7 @@ void getImage(HTTPServerRequest req, HTTPServerResponse res)
     {
         enforceHTTP(false, HTTPStatus.notFound, httpStatusText(HTTPStatus.notFound));
     }
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
     auto row = conn.queryRow("select `mime`, `imgdata` from `posts` where `id` = ?", id);
     auto mime = row[0].get!(string);
     if (ext == "jpg" && mime == "image/jpeg"  ||
@@ -516,7 +516,7 @@ void postComment(HTTPServerRequest req, HTTPServerResponse res)
 
     auto postId = req.form["post_id"].to!uint;
 
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
     conn.exec("insert into `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)",
               postId, me.id, req.form["comment"]);
     return res.redirect("/posts/" ~ postId.to!string);
@@ -533,7 +533,7 @@ void getAdminBanned(HTTPServerRequest req, HTTPServerResponse res)
         enforceHTTP(false, HTTPStatus.forbidden, httpStatusText(HTTPStatus.forbidden));
     }
     User[] users;
-    auto conn = client.lockConnection();
+    auto conn = pool.lockConnection();
     auto rows = conn.query("select * from `users` where `authority` = 0 and `del_flg` = 0 order by `created_at` desc").array;
     foreach (row; rows)
     {
@@ -564,7 +564,7 @@ void main()
     string dbname   = environment.get("ISUCONP_DB_NAME", "isuconp");
     auto dsn = format("host=%s;port=%s;user=%s;pwd=%s;db=%s",
                       host, port, user, pwd, dbname);
-    client = new MySQLPool(dsn);
+    pool = new MySQLPool(dsn);
 
     auto router = new URLRouter;
     router.get("/", &getIndex);
