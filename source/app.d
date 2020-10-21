@@ -1,24 +1,7 @@
-import vibe.http.server;
-import vibe.http.router;
-import vibe.http.session;
-import vibe.http.fileserver;
-import vibe.core.core;
-import vibe.core.file;
+import vibe.d;
 import vibe.inet.mimetypes;
-
 import mysql;
-
-import std.algorithm;
-import std.array : array;
-import std.conv : to;
-import std.datetime;
-import std.format : format;
-import std.process;
-import std.regex;
-import std.stdio;
-import std.string;
-import std.uuid;
-import std.variant;
+import std;
 
 immutable UPDATE_LIMIT = 10 * 1024 * 1024;  // 10mb
 immutable POST_PER_PAGE = 20;
@@ -260,7 +243,7 @@ void postIndex(HTTPServerRequest req, HTTPServerResponse res)
         return res.redirect("/");
     }
 
-    auto mime = pf.filename.name.getMimeTypeForFile;
+    auto mime = getMimeTypeForFile(pf.filename.name);
     if (! ["image/jpeg", "image/png", "image/gif"].canFind(mime))
     {
         stderr.writeln("投稿できる画像形式はjpgとpngとgifだけです");
