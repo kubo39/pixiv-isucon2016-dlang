@@ -6,7 +6,7 @@ import std;
 immutable UPDATE_LIMIT = 10 * 1024 * 1024;  // 10mb
 immutable POST_PER_PAGE = 20;
 
-MySQLPool pool;
+__gshared MySQLPool pool;
 
 struct User
 {
