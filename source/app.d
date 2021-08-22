@@ -6,7 +6,7 @@ import std;
 immutable UPDATE_LIMIT = 10 * 1024 * 1024;  // 10mb
 immutable POST_PER_PAGE = 20;
 
-__gshared MySQLPool pool;
+MySQLPool pool;
 
 struct User
 {
@@ -538,7 +538,7 @@ void getAdminBanned(HTTPServerRequest req, HTTPServerResponse res)
 // }
 
 
-void main()
+static this()
 {
     string host     = environment.get("ISUCONP_DB_HOST", "localhost");
     string port     = environment.get("ISUCONP_DB_PORT", "3306");
@@ -548,7 +548,10 @@ void main()
     auto dsn = format("host=%s;port=%s;user=%s;pwd=%s;db=%s",
                       host, port, user, pwd, dbname);
     pool = new MySQLPool(dsn);
+}
 
+void main()
+{
     auto router = new URLRouter;
     router.get("/", &getIndex);
     router.post("/", &postIndex);
